@@ -1,7 +1,7 @@
 # Arena Fighter
 
 **Arena Fighter** is a Minecraft Beta 1.7.3 plugin built on [Project Poseidon](https://github.com/retromcorg/Project-Poseidon). 
-It enables players to duel each other in a dedicated arena, providing a seamless PvP experience tailored for the Beta 1.7.3.
+It enables players to duel each other in a dedicated arenas, providing a seamless PvP experience.
 
 ---
 
