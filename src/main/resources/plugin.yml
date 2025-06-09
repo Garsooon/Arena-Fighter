@@ -1,0 +1,33 @@
+name: ArenaFighter
+version: 1.0.0
+description: A plugin that allows players to fight in arenas and teleports them back after fights conclude
+author: Garsooon
+main: org.garsooon.arenafighter.Arena.ArenaFighter
+api-version: 1.0
+
+commands:
+  fight:
+    description: Challenge other players to arena fights
+    usage: /fight <challenge|accept|cancel> [player]
+    permission: arenafighter.fight
+  arena:
+    description: Manage arena configurations
+    usage: /arena <create|remove|list|tp> [args]
+    permission: arenafighter.admin
+  fightabout:
+    description: Displays information about current ArenaFighter version
+    usage: /fightabout
+  spectate:
+    description: Spectate a ongoing Fight
+    usage: /spectate
+  stopspectate:
+    description: Stop spectating and return to your original location
+    usage: /stopspectate
+
+permissions:
+  arenafighter.fight:
+    description: Allows players to participate in arena fights
+    default: true
+  arenafighter.admin:
+    description: Allows players to manage arenas
+    default: op
