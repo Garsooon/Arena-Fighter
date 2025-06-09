@@ -41,7 +41,9 @@ It enables players to duel each other in a dedicated arena, providing a seamless
 
 ## Development
 
-This plugin is designed specifically for the Beta 1.7.3 Minecraft version and uses Poseidon's event and plugin API for compatibility.
+This plugin is designed specifically for the Beta 1.7.3 Minecraft and uses [Poseidon's](https://github.com/retromcorg/Project-Poseidon) event and plugin API for compatibility. It has not been tested on UberBukkit or any other forks.
+
+Contributing code is also welcome. When contributing please try to keep code readable by others by either keeping functions simple or commenting your code. You can find the current goals of the project at [Issue#1](https://github.com/Garsooon/Arena-Fighter/issues/1)
 
 ### Building
 
