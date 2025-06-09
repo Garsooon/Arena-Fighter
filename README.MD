@@ -10,7 +10,7 @@ It enables players to duel each other in a dedicated arena, providing a seamless
 - Challenge other players to 1v1 fights
 - Spectator support
 - Automatic teleportation of players to the arena and back after the duel
-- Economy support for wagers and bets
+- Economy support for wagers and bets [Planned feature- WIP]
 
 ---
 
