@@ -204,13 +204,17 @@ public class FightManager {
 
         pendingChallenges.remove(challengerId);
 
+        // Start 30 second countdown before fight starts
+        //TODO look into how I set up scheduler, it looks like fightcommand takes priority this may be redundant
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            // Send 15 seconds left message to both players
             if (challenger.isOnline() && target.isOnline()) {
                 challenger.sendMessage(ChatColor.YELLOW + "Fight starts in 15 seconds...");
                 target.sendMessage(ChatColor.YELLOW + "Fight starts in 15 seconds...");
             }
         }, 20L * 15);
 
+        // Schedule the actual fight start after 30 seconds
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
             if (challenger.isOnline() && target.isOnline()) {
                 startFight(challenger, target);
@@ -226,11 +230,7 @@ public class FightManager {
                 entry.getKey().equals(uuid) || entry.getValue().equals(uuid));
     }
 
-    // --- Spectator Methods ---
-
-    /**
-     * Start spectating the first available fight
-     */
+    // Spectator Methods
     public boolean startSpectating(Player player) {
         UUID uuid = player.getUniqueId();
         if (spectatorOriginalLocations.containsKey(uuid)) {
