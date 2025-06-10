@@ -48,7 +48,6 @@ public class FightManager {
 
         arenaManager.occupyArena(arena);
 
-        // Teleport players to arena spawn points immediately when fight starts
         player1.teleport(arena.getSpawn1());
         player2.teleport(arena.getSpawn2());
 
@@ -231,8 +230,7 @@ public class FightManager {
                 entry.getKey().equals(uuid) || entry.getValue().equals(uuid));
     }
 
-    // --- Spectator Methods ---
-
+    // Spectator Methods
     public boolean startSpectating(Player player) {
         UUID uuid = player.getUniqueId();
         if (spectatorOriginalLocations.containsKey(uuid)) {
@@ -268,6 +266,35 @@ public class FightManager {
         return true;
     }
 
+    //TODO Clean up old code with no references anymore or use in game -spectate command, fightcommand and fight manager
+    //Start spectating a specific arena by name
+    public boolean startSpectating(Player player, String arenaName) {
+        UUID uuid = player.getUniqueId();
+
+        if (spectatorOriginalLocations.containsKey(uuid)) {
+            player.sendMessage(ChatColor.RED + "You are already spectating.");
+            return false;
+        }
+
+        Arena arena = arenaManager.getArena(arenaName);
+        if (arena == null) {
+            player.sendMessage(ChatColor.RED + "Arena '" + arenaName + "' does not exist.");
+            return false;
+        }
+
+        Location specSpawn = arena.getSpectatorSpawn();
+        if (specSpawn == null) {
+            player.sendMessage(ChatColor.RED + "Spectator spawn is not set for arena '" + arenaName + "'.");
+            return false;
+        }
+
+        spectatorOriginalLocations.put(uuid, player.getLocation().clone());
+        player.teleport(specSpawn);
+        player.sendMessage(ChatColor.YELLOW + "You are now spectating arena: " + ChatColor.AQUA + arenaName);
+        player.sendMessage(ChatColor.YELLOW + "Use /spectate to return to your original location.");
+        return true;
+    }
+
     public boolean stopSpectating(Player player) {
         UUID uuid = player.getUniqueId();
         Location original = spectatorOriginalLocations.remove(uuid);
@@ -289,5 +316,9 @@ public class FightManager {
                 stopSpectating(player);
             }
         }
+    }
+
+    public boolean isSpectating(Player player) {
+        return spectatorOriginalLocations.containsKey(player.getUniqueId());
     }
 }

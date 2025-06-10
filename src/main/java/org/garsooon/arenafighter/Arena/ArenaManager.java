@@ -166,7 +166,6 @@ public class ArenaManager {
         props.setProperty(name + ".spawn2.yaw", String.valueOf(spawn2.getYaw()));
         props.setProperty(name + ".spawn2.pitch", String.valueOf(spawn2.getPitch()));
 
-        // Save spectator spawn
         props.setProperty(name + ".spectator.x", String.valueOf(spectatorSpawn.getX()));
         props.setProperty(name + ".spectator.y", String.valueOf(spectatorSpawn.getY()));
         props.setProperty(name + ".spectator.z", String.valueOf(spectatorSpawn.getZ()));
@@ -215,8 +214,7 @@ public class ArenaManager {
         return new ArrayList<>(arenas.keySet());
     }
 
-    // Spectator Methods
-
+    // Spectator management
     public void addSpectator(Player player, Arena arena) {
         spectators.put(player, arena);
         arena.addSpectator(player);
