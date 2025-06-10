@@ -43,7 +43,7 @@ jobs:
 
       - name: Create GitHub Release
         if: ${{ !endsWith(env.PROJECT_VERSION, '-SNAPSHOT') }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
         with:
           tag_name: ${{ env.PROJECT_VERSION }}
           files: |
