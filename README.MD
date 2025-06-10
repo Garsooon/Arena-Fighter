@@ -1,6 +1,11 @@
 # Arena Fighter
 
-**Arena Fighter** is a Minecraft Beta 1.7.3 plugin built on [Project Poseidon](https://github.com/retromcorg/Project-Poseidon). 
+[![GitHub Release](https://img.shields.io/github/v/release/Garsooon/Arena-Fighter?label=release)](https://github.com/Garsooon/Arena-Fighter/releases/latest)
+[![GitHub Downloads](https://img.shields.io/github/downloads/Garsooon/Arena-Fighter/latest/total?label=downloads)](https://github.com/Garsooon/Arena-Fighter/releases/latest)
+[![GitHub Views](https://komarev.com/ghpvc/?username=Garsooon&label=Views&color=blue&style=flat)](https://github.com/Garsooon/Arena-Fighter)
+[![GitHub Stars](https://img.shields.io/github/stars/Garsooon/Arena-Fighter?style=social)](https://github.com/Garsooon/Arena-Fighter/stargazers)
+
+**Arena Fighter** is a Minecraft Beta 1.7.3 plugin built on [Project Poseidon](https://github.com/retromcorg/Project-Poseidon).  
 It enables players to duel each other in a dedicated arenas, providing a seamless PvP experience.
 
 ---
@@ -10,7 +15,7 @@ It enables players to duel each other in a dedicated arenas, providing a seamles
 - Challenge other players to 1v1 fights
 - Spectator support
 - Automatic teleportation of players to the arena and back after the duel
-- Economy support for wagers and bets [Planned feature- WIP]
+- Economy support for wagers and bets [Planned feature - WIP]
 
 ---
 
@@ -51,5 +56,3 @@ Make sure you have Maven installed and configured then run:
 
 ```bash
 mvn clean package
-```
-Drag and drop the plugin without the `original` prefix into your plugins folder and load the game
