@@ -48,7 +48,6 @@ public class FightManager {
 
         arenaManager.occupyArena(arena);
 
-        // Teleport players to arena spawn points immediately when fight starts
         player1.teleport(arena.getSpawn1());
         player2.teleport(arena.getSpawn2());
 
@@ -205,17 +204,13 @@ public class FightManager {
 
         pendingChallenges.remove(challengerId);
 
-        // Start 30 second countdown before fight starts
-        //TODO look into how I set up scheduler, it looks like fightcommand takes priority this may be redundant
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-            // Send 15 seconds left message to both players
             if (challenger.isOnline() && target.isOnline()) {
                 challenger.sendMessage(ChatColor.YELLOW + "Fight starts in 15 seconds...");
                 target.sendMessage(ChatColor.YELLOW + "Fight starts in 15 seconds...");
             }
         }, 20L * 15);
 
-        // Schedule the actual fight start after 30 seconds
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
             if (challenger.isOnline() && target.isOnline()) {
                 startFight(challenger, target);
@@ -233,6 +228,9 @@ public class FightManager {
 
     // --- Spectator Methods ---
 
+    /**
+     * Start spectating the first available fight
+     */
     public boolean startSpectating(Player player) {
         UUID uuid = player.getUniqueId();
         if (spectatorOriginalLocations.containsKey(uuid)) {
@@ -268,6 +266,35 @@ public class FightManager {
         return true;
     }
 
+    //TODO Clean up old code with no references anymore or use in game -spectate command, fightcommand and fight manager
+    //Start spectating a specific arena by name
+    public boolean startSpectating(Player player, String arenaName) {
+        UUID uuid = player.getUniqueId();
+
+        if (spectatorOriginalLocations.containsKey(uuid)) {
+            player.sendMessage(ChatColor.RED + "You are already spectating.");
+            return false;
+        }
+
+        Arena arena = arenaManager.getArena(arenaName);
+        if (arena == null) {
+            player.sendMessage(ChatColor.RED + "Arena '" + arenaName + "' does not exist.");
+            return false;
+        }
+
+        Location specSpawn = arena.getSpectatorSpawn();
+        if (specSpawn == null) {
+            player.sendMessage(ChatColor.RED + "Spectator spawn is not set for arena '" + arenaName + "'.");
+            return false;
+        }
+
+        spectatorOriginalLocations.put(uuid, player.getLocation().clone());
+        player.teleport(specSpawn);
+        player.sendMessage(ChatColor.YELLOW + "You are now spectating arena: " + ChatColor.AQUA + arenaName);
+        player.sendMessage(ChatColor.YELLOW + "Use /spectate to return to your original location.");
+        return true;
+    }
+
     public boolean stopSpectating(Player player) {
         UUID uuid = player.getUniqueId();
         Location original = spectatorOriginalLocations.remove(uuid);
@@ -289,5 +316,9 @@ public class FightManager {
                 stopSpectating(player);
             }
         }
+    }
+
+    public boolean isSpectating(Player player) {
+        return spectatorOriginalLocations.containsKey(player.getUniqueId());
     }
 }

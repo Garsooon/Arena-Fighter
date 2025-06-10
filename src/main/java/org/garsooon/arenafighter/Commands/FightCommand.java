@@ -193,6 +193,7 @@ public class FightCommand implements CommandExecutor {
         player.sendMessage(ChatColor.YELLOW + "/fight accept <player>" + ChatColor.WHITE + " - Accept a challenge");
         player.sendMessage(ChatColor.YELLOW + "/fight cancel" + ChatColor.WHITE + " - Cancel current fight");
         player.sendMessage(ChatColor.YELLOW + "/fight help" + ChatColor.WHITE + " - Show help");
+        player.sendMessage(ChatColor.YELLOW + "/spectate <arena>" + ChatColor.WHITE + " - Start spectating");
     }
 
     private void cancelTimeout(String name) {

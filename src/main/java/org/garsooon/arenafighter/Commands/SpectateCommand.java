@@ -23,23 +23,29 @@ public class SpectateCommand implements CommandExecutor {
         }
         Player player = (Player) sender;
 
-        if (label.equalsIgnoreCase("spectate")) {
-            boolean started = fightManager.startSpectating(player);
-            if (started) {
-                player.sendMessage(ChatColor.YELLOW + "You are now spectating the arena.");
-            } else {
-                player.sendMessage(ChatColor.RED + "Spectator spawn not set or error occurred.");
-            }
-            return true;
-        } else if (label.equalsIgnoreCase("stopspectate")) {
+        if (fightManager.isSpectating(player)) {
+            // If already spectating, stop and return
             boolean stopped = fightManager.stopSpectating(player);
             if (stopped) {
-                player.sendMessage(ChatColor.YELLOW + "You stopped spectating and returned to your original location.");
+                player.sendMessage(ChatColor.YELLOW + "You have stopped spectating and returned to your original location.");
             } else {
-                player.sendMessage(ChatColor.RED + "You are not currently spectating.");
+                player.sendMessage(ChatColor.RED + "An error occurred while stopping spectating.");
             }
             return true;
         }
-        return false;
+
+        // Start spectating: requires arena name for multi-arena support
+        if (args.length == 0) {
+            player.sendMessage(ChatColor.RED + "Usage: /spectate <arena>");
+            return true;
+        }
+
+        String arenaName = args[0];
+        boolean started = fightManager.startSpectating(player, arenaName);
+        if (!started) {
+            player.sendMessage(ChatColor.RED + "Arena not found or spectator spawn not set.");
+        }
+
+        return true;
     }
 }

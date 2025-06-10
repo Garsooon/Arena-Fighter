@@ -30,9 +30,8 @@ public class ArenaFighter extends JavaPlugin {
         getCommand("fight").setExecutor(fightCommand);
         getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
-        getCommand("stopspectate").setExecutor(new SpectateCommand(fightManager));
         //TODO (Lowest Priority) automatically pull version info from pom.xml or plugin.yml
-        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.0", "Garsooon"));
+        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.2", "Garsooon"));
 
         // Register event listeners
         PluginManager pm = getServer().getPluginManager();
