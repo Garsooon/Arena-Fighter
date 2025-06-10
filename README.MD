@@ -1,7 +1,7 @@
 # Arena Fighter
 
 [![GitHub Release](https://img.shields.io/github/v/release/Garsooon/Arena-Fighter?label=release)](https://github.com/Garsooon/Arena-Fighter/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Garsooon/Arena-Fighter/total.svg?style=for-the-badge)](https://github.com/Garsooon/Arena-Fighter/releases)
+[![Downloads](https://img.shields.io/github/downloads/Garsooon/Arena-Fighter/total.svg?style=flat)](https://github.com/Garsooon/Arena-Fighter/releases)
 [![GitHub Views](https://komarev.com/ghpvc/?username=Garsooon&label=Views&color=blue&style=flat)](https://github.com/Garsooon/Arena-Fighter)
 [![GitHub Stars](https://img.shields.io/github/stars/Garsooon/Arena-Fighter?style=social)](https://github.com/Garsooon/Arena-Fighter/stargazers)
 
