@@ -29,6 +29,10 @@ public class FightManager {
         this.spectatorOriginalLocations = new HashMap<>();
     }
 
+    public ArenaFighter getPlugin() {
+        return plugin;
+    }
+
     public boolean startFight(Player player1, Player player2) {
         if (isInFight(player1) || isInFight(player2)) {
             return false;
