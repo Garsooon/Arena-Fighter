@@ -6,7 +6,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/Garsooon/Arena-Fighter?style=social)](https://github.com/Garsooon/Arena-Fighter/stargazers)
 
 **Arena Fighter** is a Minecraft Beta 1.7.3 plugin built on [Project Poseidon](https://github.com/retromcorg/Project-Poseidon).  
-It enables players to duel each other in a dedicated arenas, providing a seamless PvP experience.
+It enables players to duel each other in dedicated arenas, providing a seamless PvP experience.
 
 ---
 
@@ -15,6 +15,7 @@ It enables players to duel each other in a dedicated arenas, providing a seamles
 - Challenge other players to 1v1 fights
 - Spectator support
 - Automatic teleportation of players to the arena and back after the duel
+- Configurable punishments for combat logging and command usage
 - Economy support for wagers and bets [Planned feature - WIP]
 
 ---
