@@ -10,13 +10,6 @@ import org.garsooon.arenafighter.Fight.FightManager;
 import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
 import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static org.bukkit.Bukkit.getLogger;
 
 public class ArenaFighter extends JavaPlugin {
