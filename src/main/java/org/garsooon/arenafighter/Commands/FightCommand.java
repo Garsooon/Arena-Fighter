@@ -77,6 +77,23 @@ public class FightCommand implements CommandExecutor {
             return true;
         }
 
+        //TODO same issue as line 90
+        if (fightManager.isPunished(target)) {
+            challenger.sendMessage(ChatColor.RED + "This player has left a match recently and is not");
+            challenger.sendMessage(ChatColor.RED + "allowed to duel until their punishment is over.");
+            return true;
+        }
+
+        long remainingMillis = fightManager.getRemainingPunishment(challenger);
+        if (remainingMillis > 0) {
+            long minutes = (remainingMillis / 1000) / 60;
+            long seconds = (remainingMillis / 1000) % 60;
+            //TODO look into proper wrapping after "a" \n does not seem to wrap text, Condense to 1 .sendmessage afterwards
+            challenger.sendMessage(ChatColor.RED + "You are temporarily blocked from fighting due to leaving a");
+            challenger.sendMessage(ChatColor.RED + "match for " +ChatColor.YELLOW + minutes + "m " + seconds + "s" + ChatColor.RED + ".");
+            return true;
+        }
+
         if (fightManager.isInFight(target)) {
             challenger.sendMessage(ChatColor.RED + target.getName() + " is already in a fight.");
             return true;

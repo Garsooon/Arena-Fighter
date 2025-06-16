@@ -6,7 +6,10 @@ import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaFighter;
 import org.garsooon.arenafighter.Arena.ArenaManager;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +22,8 @@ public class FightManager {
     private final Map<UUID, Location> originalLocations;
     private final Map<UUID, UUID> pendingChallenges;
     private final Map<UUID, Location> spectatorOriginalLocations;
+    private final Map<UUID, Long> punishments = new HashMap<>();
+    private final long punishmentDurationMillis;
 
     public FightManager(ArenaFighter plugin, ArenaManager arenaManager) {
         this.plugin = plugin;
@@ -27,6 +32,70 @@ public class FightManager {
         this.originalLocations = new HashMap<>();
         this.pendingChallenges = new HashMap<>();
         this.spectatorOriginalLocations = new HashMap<>();
+        this.punishmentDurationMillis = loadPunishmentDuration(plugin.getDataFolder());
+    }
+
+    private long loadPunishmentDuration(File dataFolder) {
+        File configFile = new File(dataFolder, "config.yml");
+        long defaultMinutes = 5;
+
+        if (!configFile.exists()) return defaultMinutes * 60 * 1000;
+
+        try (FileInputStream input = new FileInputStream(configFile)) {
+            Yaml yaml = new Yaml();
+            Object data = yaml.load(input);
+
+            if (data instanceof Map) {
+                Map<?, ?> root = (Map<?, ?>) data;
+                Object punishmentObj = root.get("punishment");
+
+                if (punishmentObj instanceof Map) {
+                    Map<?, ?> punishmentMap = (Map<?, ?>) punishmentObj;
+                    Object minutesObj = punishmentMap.get("duration-minutes");
+
+                    if (minutesObj instanceof Number) {
+                        return ((Number) minutesObj).longValue() * 60 * 1000;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            plugin.getServer().getLogger().warning("Failed to load punishment duration: " + e.getMessage());
+        }
+
+        return defaultMinutes * 60 * 1000;
+    }
+
+    public void punishQuitter(Player quitter) {
+        long expireAt = System.currentTimeMillis() + punishmentDurationMillis;
+        punishments.put(quitter.getUniqueId(), expireAt);
+    }
+
+    public long getRemainingPunishment(Player player) {
+        Long expireTime = punishments.get(player.getUniqueId());
+        if (expireTime == null) return 0;
+        return Math.max(0, expireTime - System.currentTimeMillis());
+    }
+
+    public boolean isPunished(Player player) {
+        UUID uuid = player.getUniqueId();
+        Long expire = punishments.get(uuid);
+
+        if (expire == null) return false;
+
+        if (System.currentTimeMillis() > expire) {
+            punishments.remove(uuid);
+            return false;
+        }
+
+        return true;
+    }
+
+    public long getPunishmentDurationMillis() {
+        return punishmentDurationMillis;
+    }
+
+    public int getPunishmentDurationMinutes() {
+        return (int) (punishmentDurationMillis / 1000 / 60);
     }
 
     public ArenaFighter getPlugin() {
@@ -271,7 +340,6 @@ public class FightManager {
     }
 
     //TODO Clean up old code with no references anymore or use in game -spectate command, fightcommand and fight manager
-    //Start spectating a specific arena by name
     public boolean startSpectating(Player player, String arenaName) {
         UUID uuid = player.getUniqueId();
 
