@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.garsooon.arenafighter.Commands.FightCommand;
+import org.garsooon.arenafighter.Fight.Fight;
 import org.garsooon.arenafighter.Fight.FightManager;
 
 public class PlayerQuitListener implements Listener {
@@ -19,14 +20,23 @@ public class PlayerQuitListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
+        Player quitter = event.getPlayer();
 
-        // Cancel any ongoing fight
-        if (fightManager.isInFight(player)) {
-            fightManager.cancelFight(player);
+        if (fightManager.isInFight(quitter)) {
+            Fight fight = fightManager.getFight(quitter);
+            if (fight != null) {
+                Player winner = fight.getOtherPlayer(quitter);
+                if (winner != null && winner.isOnline()) {
+                    fightManager.getPlugin().getServer().broadcastMessage(
+                            winner.getName() + " &ewins! &f" + quitter.getName() + " &echickened out and left."
+                    );
+                }
+            }
+
+            fightManager.cancelFight(quitter);
+            fightManager.punishQuitter(quitter); // apply punishment
         }
 
-        // Cancel any pending challenges involving the player
-        fightCommand.cancelChallengesInvolving(player.getName());
+        fightCommand.cancelChallengesInvolving(quitter.getName());
     }
 }

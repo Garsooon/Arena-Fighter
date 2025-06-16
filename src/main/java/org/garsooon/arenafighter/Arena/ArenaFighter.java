@@ -31,7 +31,7 @@ public class ArenaFighter extends JavaPlugin {
         getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
         //TODO (Lowest Priority) automatically pull version info from pom.xml or plugin.yml
-        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.2", "Garsooon"));
+        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.3", "Garsooon"));
 
         // Register event listeners
         PluginManager pm = getServer().getPluginManager();
@@ -99,6 +99,9 @@ public class ArenaFighter extends JavaPlugin {
                 writer.write("      z: 200.5\n");
                 writer.write("      yaw: 180.0\n");
                 writer.write("      pitch: 0.0\n");
+                writer.write("      yaw: 180.0\n");
+                writer.write("      punishment:\n");
+                writer.write("        duration-minute: 5\n");
                 writer.close();
 
                 getLogger().info("Created default config.yml");
@@ -107,7 +110,7 @@ public class ArenaFighter extends JavaPlugin {
             }
         }
 
-        // For Beta 1.7.3, we don't have reloadConfig() method
+        // For Beta 1.7.3, we don't have reloadConfig() method like in modern
         // The ArenaManager will handle loading the config file directly
         getLogger().info("Configuration file ready for loading");
     }
