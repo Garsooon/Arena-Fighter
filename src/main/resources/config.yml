@@ -1,70 +1,7 @@
 # ArenaFighter Configuration
-# This file contains the configuration for arena locations
+# To configure your arenas, run /arena create <arena_name> in game
+# then you can modify it in arenas.properties in the ArenaFighter folder
 
-# Example arena configuration
-# You can add multiple arenas by copying this structure or running /arena create <name> in game to automatically generate a config
-# Spawn 1 and 2 correspond to separate player spawns in the arena, spectatorSpawn corresponds to the spawn spectators go to when viewing a match (preferably seperated from the arena)
-arenas:
-  example_arena:
-    world: world
-    spawn1:
-      x: 100.5
-      y: 64.0
-      z: 200.5
-      yaw: 0.0
-      pitch: 0.0
-    spawn2:
-      x: 120.5
-      y: 64.0
-      z: 200.5
-      yaw: 180.0
-      pitch: 0.0
-    spectatorSpawn:
-      x: 110.5
-      y: 64.0
-      z: 200.5
-      yaw: 0
-      pitch: 0.0
-
-  # May be deprecated on release
-  # Add more arenas like this:
-  # arena2:
-  #   world: world
-  #   spawn1:
-  #     x: 0.0
-  #     y: 64.0
-  #     z: 0.0
-  #     yaw: 0.0
-  #     pitch: 0.0
-  #   spawn2:
-  #     x: 10.0
-  #     y: 64.0
-  #     z: 0.0
-  #     yaw: 180.0
-  #     pitch: 0.0
-  #    spectatorSpawn:
-  #      x: 10
-  #      y: 64.0
-  #      z: 0
-  #      yaw: 0
-  #      pitch: 0.0
-
-  # Example arena found in Config.txt / property
-  #Arena Fighter Arenas Configuration
-  # Fri Jun 06 03:53:11 PDT 2025
-  #  test.spawn1.pitch=28.50003
-  #  test.spawn1.x=68.96249324060017
-  #  test.spawn1.y=10.0
-  #  test.spawn1.yaw=269.9995
-  #  test.spawn1.z=-367.31912943165753
-  #  test.spawn2.pitch=28.50003
-  #  test.spawn2.x=78.96249324060017
-  #  test.spawn2.y=10.0
-  #  test.spawn2.yaw=269.9995
-  #  test.spawn2.z=-367.31912943165753
-  #  test.spectator.pitch=28.50003
-  #  test.spectator.x=68
-  #  test.spectator.y=11
-  #  test.spectator.yaw=269.9995
-  #  test.spectator.z=-381.31912943165753
-  #  test.world=world
+#Combat logging punishment
+punishment:
+  duration-minutes: 5

@@ -87,29 +87,10 @@ public class ArenaFighter extends JavaPlugin {
                 // Write default configuration
                 java.io.FileWriter writer = new java.io.FileWriter(configFile);
                 writer.write("# ArenaFighter Configuration\n");
-                writer.write("# This file contains the configuration for arena locations\n\n");
-                writer.write("# Example arena configuration\n");
-                writer.write("arenas:\n");
-                writer.write("  example_arena:\n");
-                writer.write("    world: world\n");
-                writer.write("    spawn1:\n");
-                writer.write("      x: 100.5\n");
-                writer.write("      y: 64.0\n");
-                writer.write("      z: 200.5\n");
-                writer.write("      yaw: 0.0\n");
-                writer.write("      pitch: 0.0\n");
-                writer.write("    spawn2:\n");
-                writer.write("      x: 120.5\n");
-                writer.write("      y: 64.0\n");
-                writer.write("      z: 200.5\n");
-                writer.write("      yaw: 180.0\n");
-                writer.write("      pitch: 0.0\n");
-                writer.write("    spectatorSpawn:\n");
-                writer.write("      x: 110.5\n");
-                writer.write("      y: 64.0\n");
-                writer.write("      z: 200.5\n");
-                writer.write("      yaw: 180.0\n");
-                writer.write("      pitch: 0.0\n");
+                writer.write("# To configure your arenas, run /arena create <arena_name>\n");
+                writer.write("# then you can modify it in arenas.properties in this folder\n");
+                writer.write("      punishment:\n");
+                writer.write("        duration-minute: 5\n");
                 writer.close();
 
                 getLogger().info("Created default config.yml");

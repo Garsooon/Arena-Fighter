@@ -7,6 +7,7 @@
     <groupId>org.retromc</groupId>
     <artifactId>arenafighter</artifactId>
     <version>1.0.4</version>
+
     <packaging>jar</packaging>
 
     <name>ArenaFighter</name>
