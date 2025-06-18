@@ -1,17 +1,21 @@
 package org.garsooon.arenafighter.Fight;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaFighter;
 import org.garsooon.arenafighter.Arena.ArenaManager;
+import org.garsooon.arenafighter.Data.Challenge;
 import org.garsooon.arenafighter.Economy.Method;
+import org.garsooon.arenafighter.Economy.Methods;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -123,6 +127,20 @@ public class FightManager {
 
     public boolean startFight(Player player1, Player player2, double wager) {
         if (isInFight(player1) || isInFight(player2)) return false;
+
+        // Final balance check before fight begins
+        if (wager > 0) {
+            if (!hasSufficientFunds(player1, wager)) {
+                player1.sendMessage(ChatColor.RED + "You no longer have enough money to enter this fight.");
+                player2.sendMessage(ChatColor.RED + player1.getName() + " no longer has enough money. Fight canceled.");
+                return false;
+            }
+            if (!hasSufficientFunds(player2, wager)) {
+                player2.sendMessage(ChatColor.RED + "You no longer have enough money to enter this fight.");
+                player1.sendMessage(ChatColor.RED + player2.getName() + " no longer has enough money. Fight canceled.");
+                return false;
+            }
+        }
 
         if (wager > 0) {
             if (!tryWithdraw(player1, wager)) return false;
