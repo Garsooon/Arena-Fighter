@@ -16,7 +16,7 @@ It enables players to duel each other in dedicated arenas, providing a seamless 
 - Spectator support
 - Automatic teleportation of players to the arena and back after the duel
 - Configurable punishments for combat logging and command usage
-- Economy support for wagers and bets [Planned feature - WIP]
+- Economy support for wagers and bets
 
 ---
 
