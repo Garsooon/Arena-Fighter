@@ -18,12 +18,26 @@ public class ArenaFighter extends JavaPlugin {
 
     private ArenaManager arenaManager;
     private FightManager fightManager;
+    private Method economy;
 
     @Override
     public void onEnable() {
-        // Initialize managers
+        // Initialize ArenaManager
         this.arenaManager = new ArenaManager(this);
-        this.fightManager = new FightManager(this, arenaManager);
+
+        // Load economy before FightManager, Prevents NULL pointer exceptions
+        boolean economyLoaded = Methods.setMethod(getServer().getPluginManager());
+
+        if (!economyLoaded) {
+            getLogger().warning("[ArenaFighter Eco] No economy plugin loaded, Wagers Disabled!");
+            this.economy = null; // Handle null in FightManager if needed
+        } else {
+            this.economy = Methods.getMethod();
+            getLogger().info("[ArenaFighter Eco] Method loaded: " + economy.getName() + " v" + economy.getVersion());
+        }
+
+        // Create FightManager
+        this.fightManager = new FightManager(this, arenaManager, economy);
 
         // Create shared FightCommand instance
         FightCommand fightCommand = new FightCommand(this, fightManager);
@@ -43,17 +57,7 @@ public class ArenaFighter extends JavaPlugin {
         createDefaultConfig();
         arenaManager.loadArenas();
 
-        //Eco loading and test. TODO Rework after wagers are added BEFORE pushing to main
-        boolean economyLoaded = Methods.setMethod(getServer().getPluginManager());
-
-        if (!economyLoaded) {
-            getLogger().warning("[AF Eco] No economy plugin loaded!");
-        } else {
-            Method method = Methods.getMethod();
-            getLogger().info("[AF Eco] Method loaded: " + method.getName() + " v" + method.getVersion());
-        }
-
-        getLogger().info("ArenaFighter plugin has been enabled!");
+        getLogger().info("[ArenaFighter] ArenaFighter plugin has been enabled!");
     }
 
     @Override
@@ -63,7 +67,7 @@ public class ArenaFighter extends JavaPlugin {
             fightManager.cleanup();
         }
 
-        getLogger().info("ArenaFighter plugin has been disabled!");
+        getLogger().info("[ArenaFighter] ArenaFighter plugin has been disabled!");
     }
 
     public ArenaManager getArenaManager() {
@@ -100,17 +104,5 @@ public class ArenaFighter extends JavaPlugin {
         }
 
         getLogger().info("Configuration file ready for loading");
-    }
-
-    //TODO remove before release, rework loader.
-    private void testEconomyLoad() {
-        Method method = Methods.getMethod();
-
-        if (method == null) {
-            getLogger().warning("[AF Eco] No economy plugin loaded!");
-            return;
-        }
-
-        getLogger().info("[AF Eco] Method loaded: " + method.getName() + " v" + method.getVersion());
     }
 }

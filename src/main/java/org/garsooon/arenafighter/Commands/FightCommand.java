@@ -8,6 +8,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.garsooon.arenafighter.Data.Challenge;
+import org.garsooon.arenafighter.Economy.Method;
+import org.garsooon.arenafighter.Economy.Methods;
 import org.garsooon.arenafighter.Fight.FightManager;
 
 import java.util.HashMap;
@@ -57,7 +59,7 @@ public class FightCommand implements CommandExecutor {
 
     private boolean handleChallenge(Player challenger, String[] args) {
         if (args.length < 2) {
-            challenger.sendMessage(ChatColor.RED + "Usage: /fight challenge <player>");
+            challenger.sendMessage(ChatColor.RED + "Usage: /fight challenge <player> [wagerAmount]");
             return true;
         }
 
@@ -77,7 +79,6 @@ public class FightCommand implements CommandExecutor {
             return true;
         }
 
-        //TODO same issue as line 90
         if (fightManager.isPunished(target)) {
             challenger.sendMessage(ChatColor.RED + "This player has left a match recently and is not");
             challenger.sendMessage(ChatColor.RED + "allowed to duel until their punishment is over.");
@@ -88,9 +89,8 @@ public class FightCommand implements CommandExecutor {
         if (remainingMillis > 0) {
             long minutes = (remainingMillis / 1000) / 60;
             long seconds = (remainingMillis / 1000) % 60;
-            //TODO look into proper wrapping after "a" \n does not seem to wrap text, Condense to 1 .sendmessage afterwards
             challenger.sendMessage(ChatColor.RED + "You are temporarily blocked from fighting due to leaving a");
-            challenger.sendMessage(ChatColor.RED + "match for " +ChatColor.YELLOW + minutes + "m " + seconds + "s" + ChatColor.RED + ".");
+            challenger.sendMessage(ChatColor.RED + "match for " + ChatColor.YELLOW + minutes + "m " + seconds + "s" + ChatColor.RED + ".");
             return true;
         }
 
@@ -104,18 +104,56 @@ public class FightCommand implements CommandExecutor {
             return true;
         }
 
+        // Parse optional wager
+        double wagerAmount = 0.0;
+        if (args.length >= 3) {
+            try {
+                wagerAmount = Double.parseDouble(args[2]);
+                if (wagerAmount < 0) {
+                    challenger.sendMessage(ChatColor.RED + "Wager amount cannot be negative.");
+                    return true;
+                }
+            } catch (NumberFormatException e) {
+                challenger.sendMessage(ChatColor.RED + "Invalid wager amount.");
+                return true;
+            }
+
+            Method economy = Methods.getMethod();
+            if (economy == null) {
+                challenger.sendMessage(ChatColor.RED + "Economy plugin not found. Wagers are disabled.");
+                return true;
+            }
+
+            // Failsafe for if challenge send fund check fails
+            if (!economy.hasEnough(challenger.getName(), wagerAmount, challenger.getWorld())) {
+                challenger.sendMessage(ChatColor.RED + "You do not have enough funds to make this wager.");
+                return true;
+            }
+
+            if (!economy.hasEnough(target.getName(), wagerAmount, target.getWorld())) {
+                challenger.sendMessage(ChatColor.RED + target.getName() + " does not have enough funds to accept this wager.");
+                return true;
+            }
+        }
+
         // Store challenge for target
-        pendingChallenges.put(target.getName(), new Challenge(challenger.getName(), System.currentTimeMillis()));
+        Challenge challenge = new Challenge(challenger.getName(), System.currentTimeMillis(), wagerAmount);
+        pendingChallenges.put(target.getName(), challenge);
+
         challenger.sendMessage(ChatColor.YELLOW + "Challenge sent to " + ChatColor.WHITE + target.getName());
-        target.sendMessage(ChatColor.YELLOW + "You've been challenged by " + ChatColor.WHITE + challenger.getName() + ChatColor.YELLOW + "!");
+        if (wagerAmount > 0) {
+            target.sendMessage(ChatColor.YELLOW + "You've been challenged by " + ChatColor.WHITE + challenger.getName() +
+                    ChatColor.YELLOW + " with a wager of " + ChatColor.GREEN + wagerAmount + ChatColor.YELLOW + "!");
+        } else {
+            target.sendMessage(ChatColor.YELLOW + "You've been challenged by " + ChatColor.WHITE + challenger.getName() + ChatColor.YELLOW + "!");
+        }
         target.sendMessage(ChatColor.GREEN + "Use " + ChatColor.WHITE + "/fight accept " + challenger.getName() + ChatColor.GREEN + " to accept.");
 
-        // Schedule timeout to remove challenge if no response after 30 seconds
         int taskId = plugin.getServer().getScheduler().scheduleSyncDelayedTask(
                 plugin,
                 () -> {
-                    Challenge challenge = pendingChallenges.get(target.getName());
-                    if (challenge != null && challenge.getChallengerName().equals(challenger.getName())) {
+                    Challenge active = pendingChallenges.get(target.getName());
+                    if (active != null && active.getChallengerName().equals(challenger.getName())) {
                         pendingChallenges.remove(target.getName());
                         timeoutTasks.remove(target.getName());
                         challenger.sendMessage(ChatColor.RED + target.getName() + " didn't respond to your duel request.");
@@ -143,7 +181,7 @@ public class FightCommand implements CommandExecutor {
 
     private boolean handleAccept(Player accepter, String[] args) {
         if (args.length < 2) {
-            accepter.sendMessage(ChatColor.RED + "Usage: /fight accept <player>");
+            accepter.sendMessage(ChatColor.RED + "Usage: /fight accept <player> <wager>");
             return true;
         }
 
@@ -169,21 +207,39 @@ public class FightCommand implements CommandExecutor {
             return true;
         }
 
-        // Broadcast to server on accept
-        Bukkit.broadcastMessage(ChatColor.GOLD + accepter.getName() + ChatColor.YELLOW + " has accepted " +
-                ChatColor.GOLD + challenger.getName() + ChatColor.YELLOW + "'s duel request! The fight will begin in 30 seconds...");
+        double wager = challenge.getWagerAmount();
 
-        // Schedule private message to players at 15 seconds into wait
+        // Balance check for wagers
+        if (wager > 0) {
+            if (!fightManager.hasSufficientFunds(challenger, wager)) {
+                accepter.sendMessage(ChatColor.RED + "The challenger doesn't have enough funds to cover the wager.");
+                return true;
+            }
+            if (!fightManager.hasSufficientFunds(accepter, wager)) {
+                accepter.sendMessage(ChatColor.RED + "You don't have enough funds to accept this wager.");
+                return true;
+            }
+        }
+
+        // Broadcast fight accept with wager message when there is a wager
+        String line1 = ChatColor.GOLD + accepter.getName() + ChatColor.YELLOW + " has accepted " +
+                ChatColor.GOLD + challenger.getName() + ChatColor.YELLOW + "'s duel request";
+        String line2 = (wager > 0 ? ChatColor.YELLOW + " with a wager of " + ChatColor.GREEN + wager : "") + ChatColor.YELLOW + "!";
+        String line3 = ChatColor.YELLOW + "The fight will begin in 30 seconds...";
+
+        Bukkit.broadcastMessage(line1);
+        Bukkit.broadcastMessage(line2);
+        Bukkit.broadcastMessage(line3);
+
         int fifteenSecondsTicks = 20 * 15;
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
             challenger.sendMessage(ChatColor.YELLOW + "Fight starting in 15 seconds...");
             accepter.sendMessage(ChatColor.YELLOW + "Fight starting in 15 seconds...");
         }, fifteenSecondsTicks);
 
-        // Schedule fight start at 30 seconds
         int thirtySecondsTicks = 20 * 30;
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-            boolean success = fightManager.startFight(challenger, accepter);
+            boolean success = fightManager.startFight(challenger, accepter, wager);
             if (!success) {
                 accepter.sendMessage(ChatColor.RED + "Could not start fight. No available arenas.");
                 challenger.sendMessage(ChatColor.RED + "Could not start fight. No available arenas.");
@@ -206,7 +262,7 @@ public class FightCommand implements CommandExecutor {
 
     private void sendHelp(Player player) {
         player.sendMessage(ChatColor.GOLD + "=== Arena Fighter Commands ===");
-        player.sendMessage(ChatColor.YELLOW + "/fight challenge <player>" + ChatColor.WHITE + " - Challenge a player");
+        player.sendMessage(ChatColor.YELLOW + "/fight challenge <player> <wager>" + ChatColor.WHITE + " - Challenge a player");
         player.sendMessage(ChatColor.YELLOW + "/fight accept <player>" + ChatColor.WHITE + " - Accept a challenge");
         player.sendMessage(ChatColor.YELLOW + "/fight cancel" + ChatColor.WHITE + " - Cancel current fight");
         player.sendMessage(ChatColor.YELLOW + "/fight help" + ChatColor.WHITE + " - Show help");

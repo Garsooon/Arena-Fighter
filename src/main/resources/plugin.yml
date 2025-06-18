@@ -19,9 +19,11 @@ commands:
   fightabout:
     description: Displays information about current ArenaFighter version
     usage: /fightabout
+    permission: arenafighter.fight
   spectate:
     description: Spectate an ongoing Fight
     usage: /spectate
+    permission: arenafighter.fight
 
 permissions:
   arenafighter.fight:
