@@ -9,6 +9,8 @@ import org.garsooon.arenafighter.Commands.SpectateCommand;
 import org.garsooon.arenafighter.Fight.FightManager;
 import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
 import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
+import org.garsooon.arenafighter.Economy.Method;
+import org.garsooon.arenafighter.Economy.Methods;
 
 import static org.bukkit.Bukkit.getLogger;
 
@@ -30,8 +32,7 @@ public class ArenaFighter extends JavaPlugin {
         getCommand("fight").setExecutor(fightCommand);
         getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
-        //TODO (Lowest Priority) automatically pull version info from pom.xml or plugin.yml
-        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.2", "Garsooon"));
+        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.4", "Garsooon"));
 
         // Register event listeners
         PluginManager pm = getServer().getPluginManager();
@@ -41,6 +42,16 @@ public class ArenaFighter extends JavaPlugin {
         // Load configuration
         createDefaultConfig();
         arenaManager.loadArenas();
+
+        //Eco loading and test. TODO Rework after wagers are added BEFORE pushing to main
+        boolean economyLoaded = Methods.setMethod(getServer().getPluginManager());
+
+        if (!economyLoaded) {
+            getLogger().warning("[AF Eco] No economy plugin loaded!");
+        } else {
+            Method method = Methods.getMethod();
+            getLogger().info("[AF Eco] Method loaded: " + method.getName() + " v" + method.getVersion());
+        }
 
         getLogger().info("ArenaFighter plugin has been enabled!");
     }
@@ -107,8 +118,18 @@ public class ArenaFighter extends JavaPlugin {
             }
         }
 
-        // For Beta 1.7.3, we don't have reloadConfig() method
-        // The ArenaManager will handle loading the config file directly
         getLogger().info("Configuration file ready for loading");
+    }
+
+    //TODO remove before release, rework loader.
+    private void testEconomyLoad() {
+        Method method = Methods.getMethod();
+
+        if (method == null) {
+            getLogger().warning("[AF Eco] No economy plugin loaded!");
+            return;
+        }
+
+        getLogger().info("[AF Eco] Method loaded: " + method.getName() + " v" + method.getVersion());
     }
 }
