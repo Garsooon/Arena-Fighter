@@ -45,11 +45,26 @@ public class FightCommand implements CommandExecutor {
 
         switch (args[0].toLowerCase()) {
             case "challenge":
+                if (!player.hasPermission("arenafighter.fight")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to challenge.");
+                    return true;
+                }
                 return handleChallenge(player, args);
+
             case "accept":
+                if (!player.hasPermission("arenafighter.fight")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to accept fights.");
+                    return true;
+                }
                 return handleAccept(player, args);
+
             case "cancel":
+                if (!player.hasPermission("arenafighter.admin")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to cancel fights.");
+                    return true;
+                }
                 return handleCancel(player);
+
             case "help":
             default:
                 sendHelp(player);
