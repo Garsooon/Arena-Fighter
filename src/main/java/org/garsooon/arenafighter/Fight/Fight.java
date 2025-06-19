@@ -1,7 +1,14 @@
 package org.garsooon.arenafighter.Fight;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.garsooon.arenafighter.Arena.Arena;
+import org.garsooon.arenafighter.Data.Bet;
+import org.garsooon.arenafighter.Economy.Methods;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class Fight {
 
@@ -9,7 +16,10 @@ public class Fight {
     private final Player player2;
     private final Arena arena;
     private final long startTime;
-    private final double wager; // Added wager field
+    private final double wager;
+    private final Map<String, Bet> bets = new HashMap<String, Bet>();
+    private boolean started = false;
+//    private boolean countingDown = false;
 
     public Fight(Player player1, Player player2, Arena arena) {
         this(player1, player2, arena, 0.0); // default wager = 0.0
@@ -54,6 +64,79 @@ public class Fight {
 
     public boolean containsPlayer(Player player) {
         return player.equals(player1) || player.equals(player2);
+    }
+
+    // Return true if the name matches a fighter
+    public boolean isFighter(String name) {
+        return player1.getName().equalsIgnoreCase(name) || player2.getName().equalsIgnoreCase(name);
+    }
+
+    // Place a spectator bet; returns false if already placed
+    public boolean placeBet(String spectator, String fighter, double amount) {
+        if (bets.containsKey(spectator)) return false;
+        bets.put(spectator, new Bet(spectator, fighter, amount));
+        return true;
+    }
+
+    public boolean hasStarted() {
+        return started;
+    }
+
+    public void setStarted(boolean started) {
+        this.started = started;
+    }
+
+//    public boolean isCountingDown() {
+//        return countingDown;
+//    }
+//
+//    public void setCountingDown(boolean countingDown) {
+//        this.countingDown = countingDown;
+//    }
+
+    public void resolveBets(String winner) {
+        double winnerPool = 0;
+        double loserPool = 0;
+
+        for (Bet bet : bets.values()) {
+            if (bet.getFighter().equalsIgnoreCase(winner)) {
+                winnerPool += bet.getAmount();
+            } else {
+                loserPool += bet.getAmount();
+            }
+        }
+
+        if (winnerPool == 0) {
+            // No one bet on the winner
+            for (Bet bet : bets.values()) {
+                Player p = Bukkit.getPlayer(bet.getSpectator());
+                if (p != null) {
+                    p.sendMessage(ChatColor.RED + "No one won the bets. Better luck next time!");
+                }
+            }
+            return;
+        }
+
+        for (Bet bet : bets.values()) {
+            Player p = Bukkit.getPlayer(bet.getSpectator());
+            if (p == null) continue;
+
+            if (bet.getFighter().equalsIgnoreCase(winner)) {
+                double base = bet.getAmount(); // original bet
+                double share = (bet.getAmount() / winnerPool) * loserPool;
+                double payout = base + share;
+
+                Methods.getMethod().depositPlayer(bet.getSpectator(), payout, p.getWorld());
+                p.sendMessage(ChatColor.GOLD + "You won your bet on " + winner + "! You receive " + payout);
+            } else {
+                p.sendMessage(ChatColor.RED + "You lost your bet on " + bet.getFighter() + ".");
+            }
+        }
+    }
+
+    // Clear all stored spectator bets/Reset bet status
+    public void clearBets() {
+        bets.clear();
     }
 
     @Override

@@ -24,6 +24,10 @@ commands:
     description: Spectate an ongoing Fight
     usage: /spectate
     permission: arenafighter.fight
+  bet:
+    description: Place a bet on an ongoing fight
+    usage: /bet <arena> <fighter> <amount>
+    permission: arenafighter.fight
 
 permissions:
   arenafighter.fight:

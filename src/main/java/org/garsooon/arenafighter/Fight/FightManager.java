@@ -14,10 +14,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class FightManager {
 
@@ -125,6 +122,19 @@ public class FightManager {
         return economy != null && economy.hasEnough(player.getName(), amount, player.getWorld());
     }
 
+    public Fight getFightByArena(String arenaName) {
+        for (Fight fight : activeFights.values()) {
+            if (fight.getArena().getName().equalsIgnoreCase(arenaName)) {
+                return fight;
+            }
+        }
+        return null;
+    }
+
+    public Collection<Fight> getActiveFights() {
+        return activeFights.values();
+    }
+
     public boolean startFight(Player player1, Player player2, double wager) {
         if (isInFight(player1) || isInFight(player2)) return false;
 
@@ -187,6 +197,8 @@ public class FightManager {
             message += ChatColor.YELLOW + " with a wager of " + ChatColor.GOLD + wager;
         }
 
+        fight.clearBets();
+
         plugin.getServer().broadcastMessage(message);
         return true;
     }
@@ -221,6 +233,8 @@ public class FightManager {
             deposit(winner, wager * 2);
             winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
         }
+
+        fight.resolveBets(winner.getName());
 
         String message = ChatColor.GOLD + winner.getName() +
                 ChatColor.YELLOW + " has defeated " +

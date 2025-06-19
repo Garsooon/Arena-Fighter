@@ -6,6 +6,7 @@ import org.garsooon.arenafighter.Commands.FightAboutCommand;
 import org.garsooon.arenafighter.Commands.ArenaCommand;
 import org.garsooon.arenafighter.Commands.FightCommand;
 import org.garsooon.arenafighter.Commands.SpectateCommand;
+import org.garsooon.arenafighter.Commands.SpectateBetCommand;
 import org.garsooon.arenafighter.Fight.FightManager;
 import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
 import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
@@ -46,6 +47,7 @@ public class ArenaFighter extends JavaPlugin {
         getCommand("fight").setExecutor(fightCommand);
         getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
+        getCommand("bet").setExecutor(new SpectateBetCommand(fightManager));
         this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.4", "Garsooon"));
 
         // Register event listeners
