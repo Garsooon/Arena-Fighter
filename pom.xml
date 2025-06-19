@@ -46,17 +46,6 @@
     </repositories>
 
     <dependencies>
-        <!-- Project Poseidon API -->
-<!--        <dependency>-->
-<!--            <groupId>org.retromc</groupId>-->
-<!--            <artifactId>poseidon-api</artifactId>-->
-<!--            <version>1.0.0</version>-->
-<!--            <scope>provided</scope>-->
-<!--        </dependency>-->
-<!--    </dependencies>-->
-
-
-<!--        TODO remove bloat before pushing to main-->
         <dependency>
             <groupId>com.earth2me.essentials</groupId>
             <artifactId>essentials-libraries-rollup</artifactId>
