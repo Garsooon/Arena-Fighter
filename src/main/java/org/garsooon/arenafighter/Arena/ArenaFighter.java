@@ -6,9 +6,12 @@ import org.garsooon.arenafighter.Commands.FightAboutCommand;
 import org.garsooon.arenafighter.Commands.ArenaCommand;
 import org.garsooon.arenafighter.Commands.FightCommand;
 import org.garsooon.arenafighter.Commands.SpectateCommand;
+import org.garsooon.arenafighter.Commands.SpectateBetCommand;
 import org.garsooon.arenafighter.Fight.FightManager;
 import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
 import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
+import org.garsooon.arenafighter.Economy.Method;
+import org.garsooon.arenafighter.Economy.Methods;
 
 import static org.bukkit.Bukkit.getLogger;
 
@@ -16,12 +19,26 @@ public class ArenaFighter extends JavaPlugin {
 
     private ArenaManager arenaManager;
     private FightManager fightManager;
+    private Method economy;
 
     @Override
     public void onEnable() {
-        // Initialize managers
+        // Initialize ArenaManager
         this.arenaManager = new ArenaManager(this);
-        this.fightManager = new FightManager(this, arenaManager);
+
+        // Load economy before FightManager, Prevents NULL pointer exceptions
+        boolean economyLoaded = Methods.setMethod(getServer().getPluginManager());
+
+        if (!economyLoaded) {
+            getLogger().warning("[ArenaFighter Eco] No economy plugin loaded, Wagers Disabled!");
+            this.economy = null; // Handle null in FightManager if needed
+        } else {
+            this.economy = Methods.getMethod();
+            getLogger().info("[ArenaFighter Eco] Method loaded: " + economy.getName() + " v" + economy.getVersion());
+        }
+
+        // Create FightManager
+        this.fightManager = new FightManager(this, arenaManager, economy);
 
         // Create shared FightCommand instance
         FightCommand fightCommand = new FightCommand(this, fightManager);
@@ -30,8 +47,8 @@ public class ArenaFighter extends JavaPlugin {
         getCommand("fight").setExecutor(fightCommand);
         getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
-        //TODO (Lowest Priority) automatically pull version info from pom.xml or plugin.yml
-        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.3", "Garsooon"));
+        getCommand("bet").setExecutor(new SpectateBetCommand(fightManager));
+        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.4", "Garsooon"));
 
         // Register event listeners
         PluginManager pm = getServer().getPluginManager();
@@ -42,7 +59,7 @@ public class ArenaFighter extends JavaPlugin {
         createDefaultConfig();
         arenaManager.loadArenas();
 
-        getLogger().info("ArenaFighter plugin has been enabled!");
+        getLogger().info("[ArenaFighter] ArenaFighter plugin has been enabled!");
     }
 
     @Override
@@ -52,7 +69,7 @@ public class ArenaFighter extends JavaPlugin {
             fightManager.cleanup();
         }
 
-        getLogger().info("ArenaFighter plugin has been disabled!");
+        getLogger().info("[ArenaFighter] ArenaFighter plugin has been disabled!");
     }
 
     public ArenaManager getArenaManager() {
@@ -88,8 +105,6 @@ public class ArenaFighter extends JavaPlugin {
             }
         }
 
-        // For Beta 1.7.3, we don't have reloadConfig() method like in modern
-        // The ArenaManager will handle loading the config file directly
         getLogger().info("Configuration file ready for loading");
     }
 }

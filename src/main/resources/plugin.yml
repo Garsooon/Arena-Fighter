@@ -1,9 +1,11 @@
 name: ArenaFighter
-version: 1.0.3
+version: 1.0.4
 description: A plugin that allows players to fight in arenas and teleports them back after fights conclude
 author: Garsooon
 main: org.garsooon.arenafighter.Arena.ArenaFighter
 api-version: 1.0
+
+softdepend: [Essentials, Fundamentals, ZCore, MultiCurrency, iCo4, iCo5, iCo6, BOSE6, BOSE7]
 
 commands:
   fight:
@@ -17,9 +19,15 @@ commands:
   fightabout:
     description: Displays information about current ArenaFighter version
     usage: /fightabout
+    permission: arenafighter.fight
   spectate:
     description: Spectate an ongoing Fight
     usage: /spectate
+    permission: arenafighter.fight
+  bet:
+    description: Place a bet on an ongoing fight
+    usage: /bet <arena> <fighter> <amount>
+    permission: arenafighter.fight
 
 permissions:
   arenafighter.fight:

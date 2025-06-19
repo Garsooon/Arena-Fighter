@@ -1,18 +1,20 @@
 package org.garsooon.arenafighter.Fight;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaFighter;
 import org.garsooon.arenafighter.Arena.ArenaManager;
+import org.garsooon.arenafighter.Data.Challenge;
+import org.garsooon.arenafighter.Economy.Method;
+import org.garsooon.arenafighter.Economy.Methods;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class FightManager {
 
@@ -20,14 +22,16 @@ public class FightManager {
     private final ArenaManager arenaManager;
     private final Map<UUID, Fight> activeFights;
     private final Map<UUID, Location> originalLocations;
-    private final Map<UUID, UUID> pendingChallenges;
+    private final Map<UUID, FightChallenge> pendingChallenges;
     private final Map<UUID, Location> spectatorOriginalLocations;
     private final Map<UUID, Long> punishments = new HashMap<>();
     private final long punishmentDurationMillis;
+    private final Method economy;
 
-    public FightManager(ArenaFighter plugin, ArenaManager arenaManager) {
+    public FightManager(ArenaFighter plugin, ArenaManager arenaManager, Method economy) {
         this.plugin = plugin;
         this.arenaManager = arenaManager;
+        this.economy = economy;
         this.activeFights = new HashMap<>();
         this.originalLocations = new HashMap<>();
         this.pendingChallenges = new HashMap<>();
@@ -79,14 +83,11 @@ public class FightManager {
     public boolean isPunished(Player player) {
         UUID uuid = player.getUniqueId();
         Long expire = punishments.get(uuid);
-
         if (expire == null) return false;
-
         if (System.currentTimeMillis() > expire) {
             punishments.remove(uuid);
             return false;
         }
-
         return true;
     }
 
@@ -102,20 +103,78 @@ public class FightManager {
         return plugin;
     }
 
-    public boolean startFight(Player player1, Player player2) {
-        if (isInFight(player1) || isInFight(player2)) {
-            return false;
+    // Helpers for ECO function via Method interface
+    private boolean tryWithdraw(Player player, double amount) {
+        if (amount <= 0) return true;
+        boolean success = economy.withdrawPlayer(player.getName(), amount, player.getWorld());
+        if (!success) {
+            player.sendMessage(ChatColor.RED + "You do not have enough money to wager " + amount);
+        }
+        return success;
+    }
+
+    public void deposit(Player player, double amount) {
+        if (amount <= 0) return;
+        economy.depositPlayer(player.getName(), amount, player.getWorld());
+    }
+
+    public boolean hasSufficientFunds(Player player, double amount) {
+        return economy != null && economy.hasEnough(player.getName(), amount, player.getWorld());
+    }
+
+    public Fight getFightByArena(String arenaName) {
+        for (Fight fight : activeFights.values()) {
+            if (fight.getArena().getName().equalsIgnoreCase(arenaName)) {
+                return fight;
+            }
+        }
+        return null;
+    }
+
+    public Collection<Fight> getActiveFights() {
+        return activeFights.values();
+    }
+
+    public boolean startFight(Player player1, Player player2, double wager) {
+        if (isInFight(player1) || isInFight(player2)) return false;
+
+        // Final balance check before fight begins
+        if (wager > 0) {
+            if (!hasSufficientFunds(player1, wager)) {
+                player1.sendMessage(ChatColor.RED + "You no longer have enough money to enter this fight.");
+                player2.sendMessage(ChatColor.RED + player1.getName() + " no longer has enough money. Fight canceled.");
+                return false;
+            }
+            if (!hasSufficientFunds(player2, wager)) {
+                player2.sendMessage(ChatColor.RED + "You no longer have enough money to enter this fight.");
+                player1.sendMessage(ChatColor.RED + player2.getName() + " no longer has enough money. Fight canceled.");
+                return false;
+            }
+        }
+
+        if (wager > 0) {
+            if (!tryWithdraw(player1, wager)) return false;
+            if (!tryWithdraw(player2, wager)) {
+                // Refund player1 if player2 can't pay, edge case
+                deposit(player1, wager);
+                return false;
+            }
         }
 
         Arena arena = arenaManager.getAvailableArena();
         if (arena == null) {
+            // Refund wagers if no arena available
+            if (wager > 0) {
+                deposit(player1, wager);
+                deposit(player2, wager);
+            }
             return false;
         }
 
         originalLocations.put(player1.getUniqueId(), player1.getLocation().clone());
         originalLocations.put(player2.getUniqueId(), player2.getLocation().clone());
 
-        Fight fight = new Fight(player1, player2, arena);
+        Fight fight = new Fight(player1, player2, arena, wager);
         activeFights.put(player1.getUniqueId(), fight);
         activeFights.put(player2.getUniqueId(), fight);
 
@@ -134,8 +193,13 @@ public class FightManager {
                 ChatColor.YELLOW + " in arena " +
                 ChatColor.GREEN + arena.getName();
 
-        plugin.getServer().broadcastMessage(message);
+        if (wager > 0) {
+            message += ChatColor.YELLOW + " with a wager of " + ChatColor.GOLD + wager;
+        }
 
+        fight.clearBets();
+
+        plugin.getServer().broadcastMessage(message);
         return true;
     }
 
@@ -163,11 +227,26 @@ public class FightManager {
 
         stopAllSpectators();
 
+        double wager = fight.getWager();
+
+        if (wager > 0) {
+            deposit(winner, wager * 2);
+            winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
+        }
+
+        fight.resolveBets(winner.getName());
+
         String message = ChatColor.GOLD + winner.getName() +
                 ChatColor.YELLOW + " has defeated " +
                 ChatColor.RED + loser.getName() +
                 ChatColor.YELLOW + " in arena " +
-                ChatColor.GREEN + fight.getArena().getName() + "!";
+                ChatColor.GREEN + fight.getArena().getName();
+
+        if (wager > 0) {
+            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + (wager * 2);
+        }
+
+        message += ChatColor.YELLOW + "!";
 
         plugin.getServer().broadcastMessage(message);
     }
@@ -241,56 +320,58 @@ public class FightManager {
 
     public boolean hasPendingChallenge(Player player) {
         UUID uuid = player.getUniqueId();
-        return pendingChallenges.containsKey(uuid) || pendingChallenges.containsValue(uuid);
+        for (FightChallenge challenge : pendingChallenges.values()) {
+            if (challenge.getChallengerId().equals(uuid) || challenge.getTargetId().equals(uuid)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public boolean sendChallenge(Player challenger, Player target) {
-        UUID challengerId = challenger.getUniqueId();
-        UUID targetId = target.getUniqueId();
-
+    public boolean sendChallenge(Player challenger, Player target, double wager) {
         if (hasPendingChallenge(challenger) || hasPendingChallenge(target)) {
             return false;
         }
 
-        pendingChallenges.put(challengerId, targetId);
+        FightChallenge challenge = new FightChallenge(challenger.getUniqueId(), target.getUniqueId(), wager);
+        pendingChallenges.put(challenger.getUniqueId(), challenge);
         return true;
     }
 
     public boolean acceptChallenge(Player target) {
         UUID targetId = target.getUniqueId();
-        UUID challengerId = null;
+        FightChallenge foundChallenge = null;
 
-        for (Map.Entry<UUID, UUID> entry : pendingChallenges.entrySet()) {
-            if (entry.getValue().equals(targetId)) {
-                challengerId = entry.getKey();
+        for (FightChallenge challenge : pendingChallenges.values()) {
+            if (challenge.getTargetId().equals(targetId)) {
+                foundChallenge = challenge;
                 break;
             }
         }
 
-        if (challengerId == null) return false;
+        if (foundChallenge == null) return false;
+
+        UUID challengerId = foundChallenge.getChallengerId();
+        double wager = foundChallenge.getWager();
 
         Player challenger = plugin.getServer().getPlayer(challengerId);
         if (challenger == null || !challenger.isOnline()) {
-            pendingChallenges.remove(challengerId);
+            pendingChallenges.values().remove(foundChallenge);
             return false;
         }
 
-        pendingChallenges.remove(challengerId);
+        pendingChallenges.values().remove(foundChallenge);
 
-        // Start 30 second countdown before fight starts
-        //TODO look into how I set up scheduler, it looks like fightcommand takes priority this may be redundant
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-            // Send 15 seconds left message to both players
             if (challenger.isOnline() && target.isOnline()) {
                 challenger.sendMessage(ChatColor.YELLOW + "Fight starts in 15 seconds...");
                 target.sendMessage(ChatColor.YELLOW + "Fight starts in 15 seconds...");
             }
         }, 20L * 15);
 
-        // Schedule the actual fight start after 30 seconds
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
             if (challenger.isOnline() && target.isOnline()) {
-                startFight(challenger, target);
+                startFight(challenger, target, wager);
             }
         }, 20L * 30);
 
@@ -300,10 +381,9 @@ public class FightManager {
     public void cancelChallenge(Player player) {
         UUID uuid = player.getUniqueId();
         pendingChallenges.entrySet().removeIf(entry ->
-                entry.getKey().equals(uuid) || entry.getValue().equals(uuid));
+                entry.getKey().equals(uuid) || entry.getValue().getTargetId().equals(uuid));
     }
 
-    // Spectator Methods
     public boolean startSpectating(Player player) {
         UUID uuid = player.getUniqueId();
         if (spectatorOriginalLocations.containsKey(uuid)) {
@@ -339,7 +419,6 @@ public class FightManager {
         return true;
     }
 
-    //TODO Clean up old code with no references anymore or use in game -spectate command, fightcommand and fight manager
     public boolean startSpectating(Player player, String arenaName) {
         UUID uuid = player.getUniqueId();
 
@@ -392,5 +471,30 @@ public class FightManager {
 
     public boolean isSpectating(Player player) {
         return spectatorOriginalLocations.containsKey(player.getUniqueId());
+    }
+
+    //ECO Wager per Challenge data
+    private static class FightChallenge {
+        private final UUID challengerId;
+        private final UUID targetId;
+        private final double wager;
+
+        public FightChallenge(UUID challengerId, UUID targetId, double wager) {
+            this.challengerId = challengerId;
+            this.targetId = targetId;
+            this.wager = wager;
+        }
+
+        public UUID getChallengerId() {
+            return challengerId;
+        }
+
+        public UUID getTargetId() {
+            return targetId;
+        }
+
+        public double getWager() {
+            return wager;
+        }
     }
 }
