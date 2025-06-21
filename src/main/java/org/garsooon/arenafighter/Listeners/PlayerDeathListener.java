@@ -17,9 +17,7 @@ public class PlayerDeathListener implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
-            return;
-        }
+        if (!(event.getEntity() instanceof Player)) return;
 
         Player deadPlayer = (Player) event.getEntity();
 
@@ -27,19 +25,14 @@ public class PlayerDeathListener implements Listener {
             return;
         }
 
+        event.getDrops().clear();
+
         Fight fight = fightManager.getFight(deadPlayer);
-        if (fight == null) {
-            return;
-        }
+        if (fight == null) return;
 
         Player winner = fight.getOtherPlayer(deadPlayer);
-        if (winner == null) {
-            return;
-        }
+        if (winner == null) return;
 
         fightManager.endFight(winner, deadPlayer);
-
-        // Cant suppress death message in without a functioning playerdeathevent, deprecated
-        // event.setDeathMessage(null);
     }
 }
