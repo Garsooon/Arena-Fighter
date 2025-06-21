@@ -69,6 +69,11 @@ public class SpectateBetCommand implements CommandExecutor {
             return true;
         }
 
+        if (fight.containsPlayer(player)) {
+            player.sendMessage(ChatColor.RED + "You cannot bet on a fight you are participating in.");
+            return true;
+        }
+
         if (!economy.withdrawPlayer(player.getName(), amount, player.getWorld())) {
             player.sendMessage(ChatColor.RED + "Failed to withdraw funds.");
             return true;
