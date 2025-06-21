@@ -1,7 +1,9 @@
 package org.garsooon.arenafighter.Fight;
 
+import net.minecraft.server.EntityHuman;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
@@ -135,6 +137,18 @@ public class FightManager {
         return activeFights.values();
     }
 
+    private void ejectPlayer(Player player) {
+        if (player.isInsideVehicle()) {
+            player.leaveVehicle();
+        }
+
+        CraftPlayer cp = (CraftPlayer) player;
+        EntityHuman eh = cp.getHandle();
+        if (eh.sleeping) {
+            eh.a(true, true, true);
+        }
+    }
+
     public boolean startFight(Player player1, Player player2, double wager) {
         if (isInFight(player1) || isInFight(player2)) return false;
 
@@ -180,6 +194,9 @@ public class FightManager {
 
         arenaManager.occupyArena(arena);
 
+        ejectPlayer(player1);
+        ejectPlayer(player2);
+
         player1.teleport(arena.getSpawn1());
         player2.teleport(arena.getSpawn2());
 
@@ -202,6 +219,7 @@ public class FightManager {
         plugin.getServer().broadcastMessage(message);
         return true;
     }
+
 
     public void endFight(Player winner, Player loser) {
         Fight fight = activeFights.get(winner.getUniqueId());
