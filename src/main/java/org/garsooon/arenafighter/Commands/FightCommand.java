@@ -196,7 +196,7 @@ public class FightCommand implements CommandExecutor {
 
     private boolean handleAccept(Player accepter, String[] args) {
         if (args.length < 2) {
-            accepter.sendMessage(ChatColor.RED + "Usage: /fight accept <player> <wager>");
+            accepter.sendMessage(ChatColor.RED + "Usage: /fight accept <player>");
             return true;
         }
 
