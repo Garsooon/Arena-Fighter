@@ -9,6 +9,7 @@ import org.garsooon.arenafighter.Commands.SpectateCommand;
 import org.garsooon.arenafighter.Commands.SpectateBetCommand;
 import org.garsooon.arenafighter.Fight.FightManager;
 import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
+import org.garsooon.arenafighter.Listeners.PlayerDropListener;
 import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
 import org.garsooon.arenafighter.Economy.Method;
 import org.garsooon.arenafighter.Economy.Methods;
@@ -55,6 +56,7 @@ public class ArenaFighter extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new PlayerDeathListener(fightManager), this);
         pm.registerEvents(new PlayerQuitListener(fightManager, fightCommand), this);
+        getServer().getPluginManager().registerEvents(new PlayerDropListener(fightManager), this);
 
         // Load configuration
         createDefaultConfig();
