@@ -1,7 +1,10 @@
 package org.garsooon.arenafighter.Fight;
 
+import net.minecraft.server.EntityHuman;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
@@ -22,6 +25,8 @@ public class FightManager {
     private final ArenaManager arenaManager;
     private final Map<UUID, Fight> activeFights;
     private final Map<UUID, Location> originalLocations;
+    private final Map<UUID, ItemStack[]> originalInventories = new HashMap<>();
+    private final Map<UUID, ItemStack[]> originalArmor = new HashMap<>();
     private final Map<UUID, FightChallenge> pendingChallenges;
     private final Map<UUID, Location> spectatorOriginalLocations;
     private final Map<UUID, Long> punishments = new HashMap<>();
@@ -135,6 +140,18 @@ public class FightManager {
         return activeFights.values();
     }
 
+    private void ejectPlayer(Player player) {
+        if (player.isInsideVehicle()) {
+            player.leaveVehicle();
+        }
+
+        CraftPlayer cp = (CraftPlayer) player;
+        EntityHuman eh = cp.getHandle();
+        if (eh.sleeping) {
+            eh.a(true, true, true);
+        }
+    }
+
     public boolean startFight(Player player1, Player player2, double wager) {
         if (isInFight(player1) || isInFight(player2)) return false;
 
@@ -180,6 +197,15 @@ public class FightManager {
 
         arenaManager.occupyArena(arena);
 
+        originalInventories.put(player1.getUniqueId(), player1.getInventory().getContents().clone());
+        originalInventories.put(player2.getUniqueId(), player2.getInventory().getContents().clone());
+
+        originalArmor.put(player1.getUniqueId(), player1.getInventory().getArmorContents().clone());
+        originalArmor.put(player2.getUniqueId(), player2.getInventory().getArmorContents().clone());
+
+        ejectPlayer(player1);
+        ejectPlayer(player2);
+
         player1.teleport(arena.getSpawn1());
         player2.teleport(arena.getSpawn2());
 
@@ -203,6 +229,7 @@ public class FightManager {
         return true;
     }
 
+
     public void endFight(Player winner, Player loser) {
         Fight fight = activeFights.get(winner.getUniqueId());
         if (fight == null) return;
@@ -217,11 +244,14 @@ public class FightManager {
 
         if (winnerOriginal != null) {
             winner.teleport(winnerOriginal);
+            //Restore for winner is an edge case, shouldn't be needed
+            restoreOriginalInventoryAndArmor(winner);
             healAndFeedPlayer(winner);
         }
 
         if (loserOriginal != null) {
             loser.teleport(loserOriginal);
+            restoreOriginalInventoryAndArmor(loser);
             healAndFeedPlayer(loser);
         }
 
@@ -249,6 +279,24 @@ public class FightManager {
         message += ChatColor.YELLOW + "!";
 
         plugin.getServer().broadcastMessage(message);
+    }
+
+    private void restoreOriginalInventoryAndArmor(final Player player) {
+        final UUID uuid = player.getUniqueId();
+
+        //Delayed run for restoring inventory and armor because lag could "eat" an inventory until next death
+        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                if (originalInventories.containsKey(uuid)) {
+                    player.getInventory().setContents(originalInventories.remove(uuid));
+                }
+                if (originalArmor.containsKey(uuid)) {
+                    player.getInventory().setArmorContents(originalArmor.remove(uuid));
+                }
+                player.updateInventory();
+            }
+        }, 3L);
     }
 
     public void cancelFight(Player player) {
