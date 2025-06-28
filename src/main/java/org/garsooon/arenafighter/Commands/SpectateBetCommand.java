@@ -25,6 +25,11 @@ public class SpectateBetCommand implements CommandExecutor {
         if (!(sender instanceof Player)) return true;
         Player player = (Player) sender;
 
+        if (economy == null) {
+            player.sendMessage(ChatColor.RED + "Economy plugin not detected. Betting is disabled.");
+            return true;
+        }
+        
         if (args.length != 2) {
             player.sendMessage(ChatColor.RED + "Usage: /bet <fighter> <amount>");
             return true;
