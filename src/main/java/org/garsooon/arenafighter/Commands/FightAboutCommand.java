@@ -5,17 +5,18 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.PluginDescriptionFile;
+import org.bukkit.plugin.java.JavaPlugin;
 
-//Information needs to be updated manually in ArenaFighter executor
-//TODO find a way to automatically pull version from pom.xml
 public class FightAboutCommand implements CommandExecutor {
 
     private final String version;
     private final String author;
 
-    public FightAboutCommand(String version, String author) {
-        this.version = version;
-        this.author = author;
+    public FightAboutCommand(JavaPlugin plugin) {
+        PluginDescriptionFile desc = plugin.getDescription();
+        this.version = desc.getVersion();
+        this.author = desc.getAuthors().isEmpty() ? "Garsooon" : desc.getAuthors().get(0);
     }
 
     @Override

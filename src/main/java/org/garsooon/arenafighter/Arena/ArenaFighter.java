@@ -45,12 +45,11 @@ public class ArenaFighter extends JavaPlugin {
         FightCommand fightCommand = new FightCommand(this, fightManager);
 
         // Register commands
-        //TODO make about command pull from pom.xml automatically
         getCommand("fight").setExecutor(fightCommand);
         getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
         getCommand("bet").setExecutor(new SpectateBetCommand(fightManager));
-        this.getCommand("fightabout").setExecutor(new FightAboutCommand("1.0.5", "Garsooon"));
+        this.getCommand("fightabout").setExecutor(new FightAboutCommand(this));
 
         // Register event listeners
         PluginManager pm = getServer().getPluginManager();
