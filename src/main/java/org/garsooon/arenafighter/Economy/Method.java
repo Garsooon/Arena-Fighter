@@ -7,7 +7,7 @@ import org.bukkit.plugin.Plugin;
  * Interface to be implemented by a payment method.
  *
  * Original author: Nijikokun <nijikokun@shortmail.com> (@nijikokun)
- * Modified by: garsooon for ArenaFighter wager integration
+ * Modified by: Garsooon for ArenaFighter wager integration
  */
 public interface Method {
     public Object getPlugin();
@@ -24,33 +24,25 @@ public interface Method {
     public boolean isCompatible(Plugin plugin);
     public void setPlugin(Plugin plugin);
 
-    /**
-     * 🚀 NEW: Convenience method to get player balance
-     */
+    //Method to get player balance
     default double getBalance(String name, World world) {
         MethodAccount acc = getAccount(name, world);
         return acc != null ? acc.balance(world) : 0.0;
     }
 
-    /**
-     * 🚀 NEW: Check if player has enough funds
-     */
+    //Check if player has enough funds
     default boolean hasEnough(String name, double amount, World world) {
         MethodAccount acc = getAccount(name, world);
         return acc != null && acc.hasEnough(amount, world);
     }
 
-    /**
-     * 🚀 NEW: Withdraw funds from a player's account
-     */
+    //Withdraw funds from a player's account
     default boolean withdrawPlayer(String name, double amount, World world) {
         MethodAccount acc = getAccount(name, world);
         return acc != null && acc.subtract(amount, world);
     }
 
-    /**
-     * 🚀 NEW: Deposit funds into a player's account
-     */
+    //Deposit funds into a player's account
     default boolean depositPlayer(String name, double amount, World world) {
         MethodAccount acc = getAccount(name, world);
         return acc != null && acc.add(amount, world);

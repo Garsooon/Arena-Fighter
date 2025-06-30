@@ -9,7 +9,7 @@ import java.util.Set;
  * The <code>Methods</code> class initializes and manages economy Method implementations.
  * This version has been tailored for the ArenaFighter plugin with support for Essentials Economy.
  *
- * Originally created by Nijikokun. Modified by garsooon.
+ * Originally created by Nijikokun. Modified by Garsooon.
  */
 public class Methods {
     private static String version = null;
@@ -24,10 +24,13 @@ public class Methods {
 
     /**
      * Initializes supported economy methods.
+     * The higher up the list the higher the priority if ran in conjunction with other economy plugins.
      * Add any additional economy providers here.
+     * Make sure to uncomment any methods being added as well.
      */
     private static void _init() {
         addMethod("Essentials", new org.garsooon.arenafighter.Economy.methods.EE17());
+        addMethod("ZCore", new org.garsooon.arenafighter.Economy.methods.ZCoreEco());
         Dependencies.add("MultiCurrency"); // Optional/future support
     }
 
