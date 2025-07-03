@@ -57,7 +57,8 @@ public class EE17 implements Method {
     }
 
     public boolean isCompatible(Plugin plugin) {
-        return plugin instanceof Essentials;
+        // This avoids referencing Essentials.class causing errors when ran in conjunction with other economy plugins.
+        return plugin.getDescription().getName().equalsIgnoreCase("Essentials");
     }
 
     public void setPlugin(Plugin plugin) {
