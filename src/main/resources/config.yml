@@ -8,6 +8,7 @@ punishment:
 
 #Command blocking for players during a fight
 blocked-commands:
+  - "/spectate"
   - "/spawn"
   - "/home"
   - "/homes"

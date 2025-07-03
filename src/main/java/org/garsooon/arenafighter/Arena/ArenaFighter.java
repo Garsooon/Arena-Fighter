@@ -123,6 +123,7 @@ public class ArenaFighter extends JavaPlugin {
                 writer.write("\n");
                 writer.write("# Command blocking for players during a fight\n");
                 writer.write("blocked-commands:\n");
+                writer.write("  - \"/spectate\"\n");
                 writer.write("  - \"/spawn\"\n");
                 writer.write("  - \"/home\"\n");
                 writer.write("  - \"/homes\"\n");
