@@ -8,11 +8,21 @@ import org.garsooon.arenafighter.Commands.FightCommand;
 import org.garsooon.arenafighter.Commands.SpectateCommand;
 import org.garsooon.arenafighter.Commands.SpectateBetCommand;
 import org.garsooon.arenafighter.Fight.FightManager;
+import org.garsooon.arenafighter.Listeners.PlayerCommandListener;
 import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
 import org.garsooon.arenafighter.Listeners.PlayerDropListener;
 import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
 import org.garsooon.arenafighter.Economy.Method;
 import org.garsooon.arenafighter.Economy.Methods;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.bukkit.Bukkit.getLogger;
 
@@ -21,6 +31,7 @@ public class ArenaFighter extends JavaPlugin {
     private ArenaManager arenaManager;
     private FightManager fightManager;
     private Method economy;
+    private Set<String> blockedCommands = new HashSet<>();
 
     @Override
     public void onEnable() {
@@ -55,10 +66,15 @@ public class ArenaFighter extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new PlayerDeathListener(fightManager), this);
         pm.registerEvents(new PlayerQuitListener(fightManager, fightCommand), this);
-        getServer().getPluginManager().registerEvents(new PlayerDropListener(fightManager), this);
+        pm.registerEvents(new PlayerDropListener(fightManager), this);
+        pm.registerEvents(new PlayerCommandListener(this, fightManager), this);
 
-        // Load configuration
+        // Create default config if missing
         createDefaultConfig();
+
+        // Load blocked commands list
+        loadBlockedCommands();
+
         arenaManager.loadArenas();
 
         getLogger().info("[ArenaFighter] ArenaFighter plugin has been enabled!");
@@ -82,12 +98,16 @@ public class ArenaFighter extends JavaPlugin {
         return fightManager;
     }
 
+    public Set<String> getBlockedCommands() {
+        return blockedCommands;
+    }
+
     private void createDefaultConfig() {
         if (!getDataFolder().exists()) {
             getDataFolder().mkdirs();
         }
 
-        java.io.File configFile = new java.io.File(getDataFolder(), "config.yml");
+        File configFile = new File(getDataFolder(), "config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
@@ -97,16 +117,63 @@ public class ArenaFighter extends JavaPlugin {
                 writer.write("# ArenaFighter Configuration\n");
                 writer.write("# To configure your arenas, run /arena create <arena_name>\n");
                 writer.write("# then you can modify it in arenas.properties in this folder\n");
-                writer.write("      punishment:\n");
-                writer.write("        duration-minute: 5\n");
+                writer.write("\n");
+                writer.write("punishment:\n");
+                writer.write("  duration-minute: 5\n");
+                writer.write("\n");
+                writer.write("# Command blocking for players during a fight\n");
+                writer.write("blocked-commands:\n");
+                writer.write("  - \"/spawn\"\n");
+                writer.write("  - \"/home\"\n");
+                writer.write("  - \"/homes\"\n");
+                writer.write("  - \"/sethome\"\n");
+                writer.write("  - \"/warp\"\n");
+                writer.write("  - \"/tp\"\n");
+                writer.write("  - \"/tpa\"\n");
+                writer.write("  - \"/tpaccept\"\n");
+                writer.write("  - \"/tphere\"\n");
+                writer.write("  - \"/heal\"\n");
                 writer.close();
 
                 getLogger().info("Created default config.yml");
-            } catch (java.io.IOException e) {
+            } catch (Exception e) {
                 getLogger().warning("Could not create default config: " + e.getMessage());
             }
         }
 
         getLogger().info("Configuration file ready for loading");
+    }
+
+    private void loadBlockedCommands() {
+        try {
+            File configFile = new File(getDataFolder(), "config.yml");
+            if (!configFile.exists()) {
+                getLogger().warning("Config file does not exist!");
+                return;
+            }
+
+            Yaml yaml = new Yaml();
+            try (InputStream input = new FileInputStream(configFile)) {
+                Object loaded = yaml.load(input);
+                if (!(loaded instanceof Map)) {
+                    getLogger().warning("Invalid config.yml format");
+                    return;
+                }
+
+                Map<?, ?> map = (Map<?, ?>) loaded;
+                Object blocked = map.get("blocked-commands");
+                if (blocked instanceof List<?>) {
+                    for (Object cmd : (List<?>) blocked) {
+                        if (cmd instanceof String) {
+                            blockedCommands.add(((String) cmd).toLowerCase());
+                        }
+                    }
+                } else {
+                    getLogger().warning("blocked-commands missing or invalid");
+                }
+            }
+        } catch (Exception e) {
+            getLogger().warning("Failed to load config.yml: " + e.getMessage());
+        }
     }
 }

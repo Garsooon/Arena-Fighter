@@ -5,3 +5,16 @@
 #Combat logging punishment
 punishment:
   duration-minutes: 5
+
+#Command blocking for players during a fight
+blocked-commands:
+  - "/spawn"
+  - "/home"
+  - "/homes"
+  - "/sethome"
+  - "/warp"
+  - "/tp"
+  - "/tpa"
+  - "/tpaccept"
+  - "/tphere"
+  - "/heal"
