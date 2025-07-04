@@ -13,7 +13,7 @@ commands:
     usage: /fight <challenge|accept|cancel> [player] [wager]
   arena:
     description: Manage arena configurations
-    usage: /arena <create|remove|list|tp> [args]
+    usage: /arena <create|remove|list|setspawn|tp> [args]
     permission: arenafighter.admin
   fightabout:
     description: Displays information about current ArenaFighter version
