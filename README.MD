@@ -32,6 +32,7 @@ It enables players to duel each other in dedicated arenas, providing a seamless 
 2. Place the JAR file into your server’s `plugins` folder.
 3. Ensure [Poseidon](https://github.com/retromcorg/Project-Poseidon) is also installed.
 4. Restart the server to load the plugin.
+5. Add the permission nodes `arenafighter.fight` or `arenafighter.admin` to your permission groups if applicable.
 
 ---
 
