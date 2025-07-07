@@ -250,8 +250,6 @@ public class FightManager {
         return true;
     }
 
-
-
     public void endFight(Player winner, Player loser) {
         Fight fight = activeFights.get(winner.getUniqueId());
         if (fight == null) return;
