@@ -203,6 +203,27 @@ public class FightManager {
         originalArmor.put(player1.getUniqueId(), player1.getInventory().getArmorContents().clone());
         originalArmor.put(player2.getUniqueId(), player2.getInventory().getArmorContents().clone());
 
+        // TODO call inFight when scheduling to be able to cancel on PlayerQuitListener
+        // Check if both players are still online before starting the fight
+        if (!player1.isOnline() || !player2.isOnline()) {
+            // Refund wagers if any
+            if (wager > 0) {
+                deposit(player1, wager);
+                deposit(player2, wager);
+            }
+
+            activeFights.remove(player1.getUniqueId());
+            activeFights.remove(player2.getUniqueId());
+
+            arenaManager.releaseArena(arena);
+
+            plugin.getServer().broadcastMessage(ChatColor.YELLOW + "Fight between "
+                    + ChatColor.GOLD + player1.getName() + ChatColor.YELLOW + " and "
+                    + ChatColor.GOLD + player2.getName() + ChatColor.YELLOW + " was canceled because a player left.");
+
+            return false;
+        }
+
         ejectPlayer(player1);
         ejectPlayer(player2);
 
@@ -228,6 +249,7 @@ public class FightManager {
         plugin.getServer().broadcastMessage(message);
         return true;
     }
+
 
 
     public void endFight(Player winner, Player loser) {

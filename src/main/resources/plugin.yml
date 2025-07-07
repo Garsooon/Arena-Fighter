@@ -1,5 +1,5 @@
 name: ArenaFighter
-version: 1.0.6
+version: 1.0.7
 description: A plugin that allows players to fight in arenas and teleports them back after fights conclude
 author: Garsooon
 main: org.garsooon.arenafighter.Arena.ArenaFighter
