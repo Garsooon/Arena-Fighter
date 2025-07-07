@@ -37,8 +37,8 @@ It enables players to duel each other in dedicated arenas, providing a seamless 
 
 ## Usage
 
-- Use `/arena create <name>` to set and create an arena, the data for which will be sent to 
- `plugins\ArenaFighter\arenas.txt` from there it can be edited
+- Use `/arena create <name>` to set and create an arena, then you may run</br>
+`/arena setspawn <spawn1|spawn2|spectator>` to change the spawns of the arena.
 - Use `/fight challenge <player>` to challenge another player to a duel.
 - Upon accepting the challenge, both players are teleported to the arena.
 - When one player dies, both are teleported back to their original locations.
