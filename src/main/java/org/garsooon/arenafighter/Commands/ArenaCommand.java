@@ -40,6 +40,8 @@ public class ArenaCommand implements CommandExecutor {
                 return handleRemove(player, args);
             case "list":
                 return handleList(player);
+            case "setspawn":
+                return handleSetSpawn(player, args);
             case "tp":
                 return handleTeleport(player, args);
             case "help":
@@ -59,8 +61,6 @@ public class ArenaCommand implements CommandExecutor {
 
         if (args.length < 2) {
             player.sendMessage(ChatColor.RED + "Usage: /arena create <name>");
-            player.sendMessage(ChatColor.YELLOW + "Stand at the first spawn point and run this command.");
-            player.sendMessage(ChatColor.YELLOW + "Then stand at the second spawn point and run /arena create <name> again.");
             return true;
         }
 
@@ -134,6 +134,56 @@ public class ArenaCommand implements CommandExecutor {
         return true;
     }
 
+    private boolean handleSetSpawn(Player player, String[] args) {
+        if (!player.hasPermission("arenafighter.admin")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to set spawns!");
+            return true;
+        }
+
+        if (args.length < 3) {
+            player.sendMessage(ChatColor.RED + "Usage: /arena setspawn <name> <spawn1|spawn2|spectator>");
+            return true;
+        }
+
+        String arenaName = args[1];
+        String spawnType = args[2].toLowerCase();
+
+        Arena arena = arenaManager.getArena(arenaName);
+        if (arena == null) {
+            player.sendMessage(ChatColor.RED + "Arena '" + arenaName + "' does not exist!");
+            return true;
+        }
+
+        Location loc = player.getLocation();
+
+        switch (spawnType) {
+            case "spawn1":
+                arena.setSpawn1(loc);
+                player.sendMessage(ChatColor.GREEN + "Set spawn1 for arena '" + arenaName + "' to your current location.");
+                break;
+            case "spawn2":
+                arena.setSpawn2(loc);
+                player.sendMessage(ChatColor.GREEN + "Set spawn2 for arena '" + arenaName + "' to your current location.");
+                break;
+            case "spectator":
+                arena.setSpectatorSpawn(loc);
+                player.sendMessage(ChatColor.GREEN + "Set spectator spawn for arena '" + arenaName + "' to your current location.");
+                break;
+            default:
+                player.sendMessage(ChatColor.RED + "Invalid spawn. Use spawn1, spawn2, or spectator.");
+                return true;
+        }
+
+        arenaManager.saveArenaToConfig(
+                arena.getName(),
+                arena.getSpawn1(),
+                arena.getSpawn2(),
+                arena.getSpectatorSpawn()
+        );
+
+        return true;
+    }
+
     // Teleport handler for fighters
     private boolean handleTeleport(Player player, String[] args) {
         if (!player.hasPermission("arenafighter.admin")) {
@@ -174,6 +224,9 @@ public class ArenaCommand implements CommandExecutor {
         player.sendMessage(ChatColor.YELLOW + "/arena create <name>" + ChatColor.WHITE + " - Create a new arena");
         player.sendMessage(ChatColor.YELLOW + "/arena remove <name>" + ChatColor.WHITE + " - Remove an arena");
         player.sendMessage(ChatColor.YELLOW + "/arena list" + ChatColor.WHITE + " - List all arenas");
+        //Still don't know how to force a line break \n doesn't seem to work. New line as a work around.
+        player.sendMessage(ChatColor.YELLOW + "/arena setspawn <name> <spawn1|spawn2|spectator>");
+        player.sendMessage(ChatColor.WHITE + " - Set spawn point");
         player.sendMessage(ChatColor.YELLOW + "/arena tp <name> [spawn1|spawn2]" + ChatColor.WHITE + " - Teleport to an arena");
         player.sendMessage(ChatColor.YELLOW + "/arena help" + ChatColor.WHITE + " - Show this help message");
     }

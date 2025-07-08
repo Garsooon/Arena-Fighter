@@ -10,8 +10,8 @@ import java.util.List;
 public class Arena {
 
     private final String name;
-    private final Location spawn1;
-    private final Location spawn2;
+    private Location spawn1;
+    private Location spawn2;
     private boolean occupied;
     private final List<Player> spectators;
 
@@ -56,6 +56,10 @@ public class Arena {
     public void setSpectatorSpawn(Location location) {
         this.spectatorSpawn = location;
     }
+
+    public void setSpawn1(Location location) {this.spawn1 = location;}
+
+    public void setSpawn2(Location location) {this.spawn2 = location;}
 
     public Location getSpectatorSpawn() {
         return spectatorSpawn != null ? spectatorSpawn.clone() : null;

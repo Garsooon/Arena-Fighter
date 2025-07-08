@@ -142,7 +142,7 @@ public class ArenaManager {
         }
     }
 
-    private void saveArenaToConfig(String name, Location spawn1, Location spawn2, Location spectatorSpawn) {
+    public void saveArenaToConfig(String name, Location spawn1, Location spawn2, Location spectatorSpawn) {
         Properties props = new Properties();
 
         if (configFile.exists()) {
