@@ -2,6 +2,7 @@ package org.garsooon.arenafighter.Fight;
 
 import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityPlayer;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -261,19 +262,32 @@ public class FightManager {
         startPostFightCooldown(winner);
         startPostFightCooldown(loser);
 
-        forceCloseInventory(winner);
-        forceCloseInventory(loser);
+//        forceCloseInventory(winner);
+//        forceCloseInventory(loser);
+
+        UUID loserId = loser.getUniqueId();
+        ItemStack[] inventory = loser.getInventory().getContents().clone();
+        ItemStack[] armor = loser.getInventory().getArmorContents().clone();
+
+        ItemStack cursor = getItemOnCursor(loser);
+        if (cursor != null && cursor.getTypeId() != 0) {
+            for (int i = 0; i < inventory.length; i++) {
+                if (inventory[i] == null || inventory[i].getTypeId() == 0) {
+                    inventory[i] = cursor;
+                    break;
+                }
+            }
+            setItemOnCursor(loser, new ItemStack(0));
+        }
+
+        originalInventories.put(loserId, inventory);
+        originalArmor.put(loserId, armor);
 
         Location winnerOriginal = originalLocations.remove(winner.getUniqueId());
         Location loserOriginal = originalLocations.remove(loser.getUniqueId());
 
-        originalInventories.put(loser.getUniqueId(), loser.getInventory().getContents().clone());
-        originalArmor.put(loser.getUniqueId(), loser.getInventory().getArmorContents().clone());
-
         if (winnerOriginal != null) {
             winner.teleport(winnerOriginal);
-            //Restore for winner is an edge case, shouldn't be needed
-            //restoreOriginalInventoryAndArmor(winner);
             healAndFeedPlayer(winner);
         }
 
@@ -420,6 +434,27 @@ public class FightManager {
     }
 
     // Inventory helpers start
+
+    public ItemStack getItemOnCursor(Player player) {
+        EntityPlayer ep = ((CraftPlayer) player).getHandle();
+        net.minecraft.server.ItemStack nms = ep.inventory.j();
+        return (nms != null) ? new CraftItemStack(nms) : null;
+    }
+
+    public void setItemOnCursor(Player player, ItemStack item) {
+        EntityPlayer ep = ((CraftPlayer) player).getHandle();
+
+        if (item == null || item.getTypeId() == 0) {
+            ep.inventory.b((net.minecraft.server.ItemStack) null);
+        } else {
+            net.minecraft.server.ItemStack nmsStack =
+                    new net.minecraft.server.ItemStack(item.getTypeId(), item.getAmount(), item.getDurability());
+            ep.inventory.b(nmsStack);
+        }
+
+        ep.z();
+    }
+
     private Map<String, Integer> countItemQuantities(ItemStack[] contents) {
         Map<String, Integer> countMap = new HashMap<>();
         if (contents == null) return countMap;
