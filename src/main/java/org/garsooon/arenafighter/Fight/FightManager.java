@@ -1,6 +1,7 @@
 package org.garsooon.arenafighter.Fight;
 
 import net.minecraft.server.EntityHuman;
+import net.minecraft.server.EntityPlayer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -27,6 +28,7 @@ public class FightManager {
     private final Map<UUID, Location> originalLocations;
     private final Map<UUID, ItemStack[]> originalInventories = new HashMap<>();
     private final Map<UUID, ItemStack[]> originalArmor = new HashMap<>();
+    private final HashMap<UUID, Integer> postFightCooldowns = new HashMap<>();
     private final Map<UUID, FightChallenge> pendingChallenges;
     private final Map<UUID, Location> spectatorOriginalLocations;
     private final Map<UUID, Long> punishments = new HashMap<>();
@@ -197,11 +199,8 @@ public class FightManager {
 
         arenaManager.occupyArena(arena);
 
-        originalInventories.put(player1.getUniqueId(), player1.getInventory().getContents().clone());
-        originalInventories.put(player2.getUniqueId(), player2.getInventory().getContents().clone());
-
-        originalArmor.put(player1.getUniqueId(), player1.getInventory().getArmorContents().clone());
-        originalArmor.put(player2.getUniqueId(), player2.getInventory().getArmorContents().clone());
+        forceCloseInventory(player1);
+        forceCloseInventory(player2);
 
         // TODO call inFight when scheduling to be able to cancel on PlayerQuitListener
         // Check if both players are still online before starting the fight
@@ -259,13 +258,22 @@ public class FightManager {
 
         arenaManager.releaseArena(fight.getArena());
 
+        startPostFightCooldown(winner);
+        startPostFightCooldown(loser);
+
+        forceCloseInventory(winner);
+        forceCloseInventory(loser);
+
         Location winnerOriginal = originalLocations.remove(winner.getUniqueId());
         Location loserOriginal = originalLocations.remove(loser.getUniqueId());
+
+        originalInventories.put(loser.getUniqueId(), loser.getInventory().getContents().clone());
+        originalArmor.put(loser.getUniqueId(), loser.getInventory().getArmorContents().clone());
 
         if (winnerOriginal != null) {
             winner.teleport(winnerOriginal);
             //Restore for winner is an edge case, shouldn't be needed
-            restoreOriginalInventoryAndArmor(winner);
+            //restoreOriginalInventoryAndArmor(winner);
             healAndFeedPlayer(winner);
         }
 
@@ -301,23 +309,212 @@ public class FightManager {
         plugin.getServer().broadcastMessage(message);
     }
 
+    // Boy I sure do love not having itemStackCursor in poseidon :clueless:
+    // This function is getting more and more bloated as I have to do alot of hacky methods to prevent duping item stack
+    // fill items in reverse so if a player edits stack values but still keeps one of an item in the saved slot # it won't revert under stacks to the original value
+    // This will print to the console if the inventory doesn't match the original inventory
+    // Check for total stack across exceptions then if total amount doesn't = saved amount add back to either missing stack or existing
+    // Items may be "Ate" if the item is held in the cursor during transition to arena, forceCloseInventory should mitigate this, but I really can't do much without itemStackCursor
+    //TODO rewrite ALL of this if and when Inventory API gets merged for poseidon
     private void restoreOriginalInventoryAndArmor(final Player player) {
         final UUID uuid = player.getUniqueId();
 
-        //Delayed run for restoring inventory and armor because lag could "eat" an inventory until next death
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
-                if (originalInventories.containsKey(uuid)) {
-                    player.getInventory().setContents(originalInventories.remove(uuid));
+                final ItemStack[] savedInventory = originalInventories.remove(uuid);
+                final ItemStack[] savedArmor = originalArmor.remove(uuid);
+
+                if (savedInventory != null) {
+                    player.getInventory().clear();
+
+                    // Fill inventory backwards to reduce stacking dupes
+                    for (int i = savedInventory.length - 1; i >= 0; i--) {
+                        ItemStack item = savedInventory[i];
+                        player.getInventory().setItem(i, item != null ? item.clone() : null);
+                    }
                 }
-                if (originalArmor.containsKey(uuid)) {
-                    player.getInventory().setArmorContents(originalArmor.remove(uuid));
+
+                if (savedArmor != null) {
+                    player.getInventory().setArmorContents(savedArmor);
                 }
-                player.updateInventory();
+
+                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                    @Override
+                    public void run() {
+                        player.updateInventory();
+
+                        // Shouldn't run now that inventories are saved on fight end.
+                        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                            @Override
+                            public void run() {
+                                boolean inventoryMismatch = !deepInventoryMatch(player.getInventory().getContents(), savedInventory);
+                                boolean armorMismatch = !deepInventoryMatch(player.getInventory().getArmorContents(), savedArmor);
+
+                                if (inventoryMismatch || armorMismatch) {
+                                    player.sendMessage(ChatColor.RED + "Your inventory failed to restore properly. Retrying...");
+
+                                    //Debug
+                                    if (savedInventory != null) {
+                                        ItemStack[] current = player.getInventory().getContents();
+                                        for (int i = 0; i < savedInventory.length; i++) {
+                                            if (!deepItemEquals(savedInventory[i], current[i])) {
+                                                plugin.getServer().getLogger().warning("[ArenaFighter] Inventory slot mismatch at " + i + " for player " + player.getName());
+                                                plugin.getServer().getLogger().warning("Expected: " + itemToString(savedInventory[i]));
+                                                plugin.getServer().getLogger().warning("Found: " + itemToString(current[i]));
+                                            }
+                                        }
+                                    }
+
+                                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            player.getInventory().clear();
+                                            for (int i = savedInventory.length - 1; i >= 0; i--) {
+                                                ItemStack item = savedInventory[i];
+                                                player.getInventory().setItem(i, item != null ? item.clone() : null);
+                                            }
+
+                                            if (savedArmor != null) {
+                                                player.getInventory().setArmorContents(savedArmor);
+                                            }
+
+                                            player.updateInventory();
+
+                                            // Final check for total item quantity mismatch
+                                            Map<String, Integer> expected = countItemQuantities(savedInventory);
+                                            Map<String, Integer> actual = countItemQuantities(player.getInventory().getContents());
+
+                                            for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+                                                String key = entry.getKey();
+                                                int expectedAmount = entry.getValue();
+                                                int actualAmount = actual.getOrDefault(key, 0);
+
+                                                if (actualAmount < expectedAmount) {
+                                                    int missing = expectedAmount - actualAmount;
+                                                    String[] split = key.split(":");
+                                                    int typeId = Integer.parseInt(split[0]);
+                                                    short damage = Short.parseShort(split[1]);
+
+                                                    ItemStack stack = new ItemStack(typeId, missing, damage);
+                                                    player.getInventory().addItem(stack);
+
+                                                    // Debug log -defunct
+                                                    plugin.getServer().getLogger().warning("[ArenaFighter] Mismatch recovery for " + player.getName() +
+                                                            ": added back " + missing + " of ItemStack{typeId=" + typeId + ", damage=" + damage + "} " +
+                                                            "(expected=" + expectedAmount + ", actual=" + actualAmount + ")");
+                                                }
+                                            }
+
+
+                                            player.updateInventory();
+                                        }
+                                    }, 2L);
+                                }
+                            }
+                        }, 2L);
+                    }
+                }, 2L);
             }
         }, 3L);
     }
+
+    // Inventory helpers start
+    private Map<String, Integer> countItemQuantities(ItemStack[] contents) {
+        Map<String, Integer> countMap = new HashMap<>();
+        if (contents == null) return countMap;
+
+        for (ItemStack item : contents) {
+            if (item == null || item.getTypeId() == 0) continue;
+            String key = item.getTypeId() + ":" + item.getDurability();
+            countMap.put(key, countMap.getOrDefault(key, 0) + item.getAmount());
+        }
+        return countMap;
+    }
+
+
+    private String itemToString(ItemStack item) {
+        if (item == null) return "null";
+        return "ItemStack{" + item.getType() + " x " + item.getAmount() + "}";
+    }
+
+    private boolean deepInventoryMatch(ItemStack[] current, ItemStack[] original) {
+        if (current == null || original == null || current.length != original.length) return false;
+
+        for (int i = 0; i < current.length; i++) {
+            ItemStack a = current[i];
+            ItemStack b = original[i];
+
+            if (!deepItemEquals(a, b)) return false;
+        }
+
+        return true;
+    }
+
+    private boolean deepItemEquals(ItemStack a, ItemStack b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+
+        if (a.getTypeId() != b.getTypeId()) return false;
+        if (a.getAmount() != b.getAmount()) return false;
+        if (a.getDurability() != b.getDurability()) return false;
+
+        return true;
+    }
+
+    private boolean isInventoryMatch(ItemStack[] a, ItemStack[] b) {
+        if (a == null || b == null || a.length != b.length) return false;
+        for (int i = 0; i < a.length; i++) {
+            ItemStack itemA = a[i];
+            ItemStack itemB = b[i];
+            if (!Objects.equals(itemA, itemB)) return false;
+        }
+        return true;
+    }
+
+    public void startPostFightCooldown(Player player) {
+        postFightCooldowns.put(player.getUniqueId(), 100); // 5 second cool down
+        scheduleCooldownTask(player);
+    }
+
+    private void scheduleCooldownTask(final Player player) {
+        final UUID uuid = player.getUniqueId();
+
+        int taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                Integer remaining = postFightCooldowns.get(uuid);
+                if (remaining == null) {
+                    return;
+                }
+
+                if (remaining <= 1) {
+                    postFightCooldowns.remove(uuid);
+                } else {
+                    postFightCooldowns.put(uuid, remaining - 1);
+                }
+            }
+        }, 1L, 1L);
+    }
+
+    public boolean isInPostFightCooldown(Player player) {
+        return postFightCooldowns.containsKey(player.getUniqueId());
+    }
+
+    private void forceCloseInventory(Player player) {
+        EntityPlayer ep = ((CraftPlayer) player).getHandle();
+
+        // Set player's active container to inventory
+        ep.activeContainer = ep.defaultContainer;
+
+        // Reset windowId for activeContainer which I set previously
+        ep.activeContainer.windowId = 0;
+
+        // Send packet to client to close window
+        ep.netServerHandler.sendPacket(new net.minecraft.server.Packet101CloseWindow(0));
+    }
+
+    // inventory helpers end
 
     public void cancelFight(Player player) {
         Fight fight = activeFights.get(player.getUniqueId());

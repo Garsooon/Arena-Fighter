@@ -2,8 +2,10 @@ package org.garsooon.arenafighter.Listeners;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.entity.Player;
+import org.garsooon.arenafighter.Fight.Fight;
 import org.garsooon.arenafighter.Fight.FightManager;
 
 public class PlayerDropListener implements Listener {
@@ -18,7 +20,7 @@ public class PlayerDropListener implements Listener {
     public void onItemDrop(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
 
-        if (fightManager.isInFight(player)) {
+        if (fightManager.isInFight(player) || fightManager.isInPostFightCooldown(player)) {
             event.setCancelled(true);
             player.sendMessage("§cYou can't drop items during a fight!");
         }
