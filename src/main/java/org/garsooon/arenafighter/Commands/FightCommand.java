@@ -308,7 +308,7 @@ public class FightCommand implements CommandExecutor {
             targetName = args[1];
         }
 
-        List<String> statsLines = fightManager.getPlayerStats(targetName);
+        List<String> statsLines = fightManager.getPlayerStatsByName(targetName);
         for (String line : statsLines) {
             player.sendMessage(line);
         }
