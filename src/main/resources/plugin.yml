@@ -1,5 +1,5 @@
 name: ArenaFighter
-version: 1.0.8
+version: 1.0.9
 description: A plugin that allows players to fight in arenas and teleports them back after fights conclude
 author: Garsooon
 main: org.garsooon.arenafighter.Arena.ArenaFighter
@@ -10,7 +10,7 @@ softdepend: [Essentials, Fundamentals, ZCore, MultiCurrency, iCo4, iCo5, iCo6, B
 commands:
   fight:
     description: Challenge other players to arena fights
-    usage: /fight <challenge|accept|cancel> [player] [wager]
+    usage: /fight <challenge|accept|cancel|leaderboard|stats|help> [player] [wager]
   arena:
     description: Manage arena configurations
     usage: /arena <create|remove|list|setspawn|tp> [args]
