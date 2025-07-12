@@ -14,6 +14,7 @@ import org.garsooon.arenafighter.Fight.FightManager;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class FightCommand implements CommandExecutor {
@@ -64,6 +65,20 @@ public class FightCommand implements CommandExecutor {
                     return true;
                 }
                 return handleCancel(player);
+
+            case "leaderboard":
+                if (!player.hasPermission("arenafighter.fight")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to see the leaderboard.");
+                    return true;
+                }
+                return handleLeaderboard(player);
+
+            case "stats":
+                if (!player.hasPermission("arenafighter.fight")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to see stats.");
+                    return true;
+                }
+                return handleStats(player, args);
 
             case "help":
             default:
@@ -264,6 +279,42 @@ public class FightCommand implements CommandExecutor {
         return true;
     }
 
+    private boolean handleLeaderboard(Player player) {
+        Map<String, Integer> topPlayers = fightManager.getTopPlayersByWins();
+
+        if (topPlayers.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "No leaderboard data found.");
+            return true;
+        }
+
+        player.sendMessage(ChatColor.GOLD + "=== ArenaFighter Leaderboard ===");
+        int rank = 1;
+        for (Map.Entry<String, Integer> entry : topPlayers.entrySet()) {
+            player.sendMessage(ChatColor.YELLOW + "#" + rank + " " + ChatColor.AQUA + entry.getKey()
+                    + ChatColor.WHITE + " - " + ChatColor.GREEN + entry.getValue() + " wins");
+            rank++;
+        }
+
+        return true;
+    }
+
+    private boolean handleStats(Player player, String[] args) {
+        String targetName;
+
+        if (args.length == 1) {
+            // Show own stats
+            targetName = player.getName();
+        } else {
+            targetName = args[1];
+        }
+
+        List<String> statsLines = fightManager.getPlayerStats(targetName);
+        for (String line : statsLines) {
+            player.sendMessage(line);
+        }
+        return true;
+    }
+
     private boolean handleCancel(Player player) {
         if (!fightManager.isInFight(player)) {
             player.sendMessage(ChatColor.RED + "You're not in a fight.");
@@ -280,6 +331,8 @@ public class FightCommand implements CommandExecutor {
         player.sendMessage(ChatColor.YELLOW + "/fight challenge <player> <wager>" + ChatColor.WHITE + " - Challenge a player");
         player.sendMessage(ChatColor.YELLOW + "/fight accept <player>" + ChatColor.WHITE + " - Accept a challenge");
         player.sendMessage(ChatColor.YELLOW + "/fight cancel" + ChatColor.WHITE + " - Cancel current fight");
+        player.sendMessage(ChatColor.YELLOW + "/fight leaderboard" + ChatColor.WHITE + " - Show top 10 fighters");
+        player.sendMessage(ChatColor.YELLOW + "/fight stats <player>" + ChatColor.WHITE + " - Show player stats");
         player.sendMessage(ChatColor.YELLOW + "/fight help" + ChatColor.WHITE + " - Show help");
         player.sendMessage(ChatColor.YELLOW + "/spectate <arena>" + ChatColor.WHITE + " - Start spectating");
     }

@@ -2,6 +2,7 @@ package org.garsooon.arenafighter.Fight;
 
 import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityPlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
@@ -19,7 +20,9 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class FightManager {
 
@@ -35,6 +38,8 @@ public class FightManager {
     private final Map<UUID, Long> punishments = new HashMap<>();
     private final long punishmentDurationMillis;
     private final Method economy;
+    private final File statsFile;
+    private Map<String, Object> stats;
 
     public FightManager(ArenaFighter plugin, ArenaManager arenaManager, Method economy) {
         this.plugin = plugin;
@@ -45,6 +50,8 @@ public class FightManager {
         this.pendingChallenges = new HashMap<>();
         this.spectatorOriginalLocations = new HashMap<>();
         this.punishmentDurationMillis = loadPunishmentDuration(plugin.getDataFolder());
+        this.statsFile = new File(plugin.getDataFolder(), "stats.yml");
+        loadStats();
     }
 
     private long loadPunishmentDuration(File dataFolder) {
@@ -307,6 +314,9 @@ public class FightManager {
         }
 
         fight.resolveBets(winner.getName());
+
+        incrementStat(winner.getName(), "wins");
+        incrementStat(loser.getName(), "losses");
 
         String message = ChatColor.GOLD + winner.getName() +
                 ChatColor.YELLOW + " has defeated " +
@@ -797,4 +807,106 @@ public class FightManager {
             return wager;
         }
     }
+
+    //Stat and leaderboard stuff
+    private void loadStats() {
+        stats = new HashMap<>();
+        if (!statsFile.exists()) return;
+
+        try (FileInputStream fis = new FileInputStream(statsFile)) {
+            Yaml yaml = new Yaml();
+            Object data = yaml.load(fis);
+            if (data instanceof Map) {
+                stats = (Map<String, Object>) data;
+            }
+        } catch (Exception e) {
+            plugin.getServer().getLogger().warning("Failed to load stats.yml: " + e.getMessage());
+        }
+    }
+
+    private void saveStats() {
+        try (FileWriter writer = new FileWriter(statsFile)) {
+            Yaml yaml = new Yaml();
+            yaml.dump(stats, writer);
+        } catch (Exception e) {
+            plugin.getServer().getLogger().warning("Failed to save stats.yml: " + e.getMessage());
+        }
+    }
+
+    private void incrementStat(String playerName, String key) {
+        Map<String, Object> playerStats = (Map<String, Object>) stats.get(playerName);
+        if (playerStats == null) {
+            playerStats = new HashMap<>();
+            stats.put(playerName, playerStats);
+        }
+
+        int current = 0;
+        Object val = playerStats.get(key);
+        if (val instanceof Number) {
+            current = ((Number) val).intValue();
+        }
+
+        playerStats.put(key, current + 1);
+        saveStats();
+    }
+
+    public Map<String, Integer> getTopPlayersByWins() {
+        Map<String, Integer> winsMap = new HashMap<>();
+
+        for (Map.Entry<String, Object> entry : stats.entrySet()) {
+            String playerName = entry.getKey();
+            Object value = entry.getValue();
+
+            if (value instanceof Map) {
+                Map<String, Object> playerStats = (Map<String, Object>) value;
+                Object winsObj = playerStats.get("wins");
+
+                if (winsObj instanceof Number) {
+                    winsMap.put(playerName, ((Number) winsObj).intValue());
+                }
+            }
+        }
+
+        return winsMap.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(10)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new
+                ));
+    }
+
+    public List<String> getPlayerStats(String playerName) {
+        Object raw = stats.get(playerName);
+        if (!(raw instanceof Map)) {
+            return Collections.singletonList(ChatColor.RED + "No stats found for " + playerName + ".");
+        }
+
+        Map<String, Object> playerStats = (Map<String, Object>) raw;
+
+        int wins = getInt(playerStats.get("wins"));
+        int losses = getInt(playerStats.get("losses"));
+
+        List<String> lines = new ArrayList<>();
+        lines.add(ChatColor.GOLD + "=== Stats for " + ChatColor.AQUA + playerName + ChatColor.GOLD + " ===");
+        lines.add(ChatColor.YELLOW + "Wins: " + ChatColor.GREEN + wins);
+        lines.add(ChatColor.YELLOW + "Losses: " + ChatColor.RED + losses);
+
+        return lines;
+    }
+
+    // Helper to safely get int from Object, returns 0 if null or not an Integer
+    private int getInt(Object obj) {
+        if (obj == null) return 0;
+        if (obj instanceof Integer) return (Integer) obj;
+        if (obj instanceof Number) return ((Number) obj).intValue();
+        try {
+            return Integer.parseInt(obj.toString());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
 }
