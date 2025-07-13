@@ -828,6 +828,7 @@ public class FightManager {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void loadStats() {
         stats = new HashMap<>();
         if (!statsFile.exists()) return;
@@ -888,20 +889,10 @@ public class FightManager {
             if (value instanceof Map) {
                 Map<String, Object> playerStats = (Map<String, Object>) value;
                 Object winsObj = playerStats.get("wins");
+                String storedName = (String) playerStats.get("username");
 
-                if (winsObj instanceof Number) {
-                    try {
-                        UUID uuid = UUID.fromString(uuidStr);
-
-                        String name = PlayerDataManager.getUsername(uuid);
-                        if (name == null) {
-                            name = uuidStr; // fallback raw UUID
-                        }
-
-                        winsMap.put(name, ((Number) winsObj).intValue());
-                    } catch (IllegalArgumentException ignored) {
-
-                    }
+                if (winsObj instanceof Number && storedName != null) {
+                    winsMap.put(storedName, ((Number) winsObj).intValue());
                 }
             }
         }
@@ -948,15 +939,25 @@ public class FightManager {
     // For /fight stats <name>
     @SuppressWarnings("unchecked")
     public List<String> getPlayerStatsByName(String name) {
-        UUID uuid;
-        try {
-            uuid = UUIDFetcher.getUUIDOf(name);
-        } catch (Exception e) {
-            return Collections.singletonList(ChatColor.RED + "Could not resolve player: " + name);
+        UUID uuid = null;
+
+        // Search for UUID based on stored username in the raw YAML map
+        for (String key : stats.keySet()) {
+            Object raw = stats.get(key);
+            if (raw instanceof Map) {
+                Map<String, Object> entry = (Map<String, Object>) raw;
+                String storedName = (String) entry.get("username");
+                if (storedName != null && storedName.equalsIgnoreCase(name)) {
+                    try {
+                        uuid = UUID.fromString(key);
+                        break;
+                    } catch (IllegalArgumentException ignored) {}
+                }
+            }
         }
 
         if (uuid == null) {
-            return Collections.singletonList(ChatColor.RED + "Could not resolve player: " + name);
+            return Collections.singletonList(ChatColor.RED + "No stats found for " + name + ".");
         }
 
         Object raw = stats.get(uuid.toString());
@@ -967,12 +968,8 @@ public class FightManager {
         Map<String, Object> playerStats = (Map<String, Object>) raw;
         int wins = getInt(playerStats.get("wins"));
         int losses = getInt(playerStats.get("losses"));
-
-        // Resolve username using PlayerDataManager or fallback to input name
-        String displayName = PlayerDataManager.getUsername(uuid);
-        if (displayName == null) {
-            displayName = name;
-        }
+        String displayName = (String) playerStats.get("username");
+        if (displayName == null) displayName = uuid.toString().substring(0, 8);
 
         List<String> lines = new ArrayList<>();
         lines.add(ChatColor.GOLD + "=== Stats for " + ChatColor.AQUA + displayName + ChatColor.GOLD + " ===");
