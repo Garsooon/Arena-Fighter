@@ -7,6 +7,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.garsooon.arenafighter.Data.Bet;
 import org.garsooon.arenafighter.Data.Challenge;
 import org.garsooon.arenafighter.Economy.Method;
 import org.garsooon.arenafighter.Economy.Methods;
@@ -14,6 +15,7 @@ import org.garsooon.arenafighter.Fight.FightManager;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class FightCommand implements CommandExecutor {
@@ -64,6 +66,20 @@ public class FightCommand implements CommandExecutor {
                     return true;
                 }
                 return handleCancel(player);
+
+            case "leaderboard":
+                if (!player.hasPermission("arenafighter.fight")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to see the leaderboard.");
+                    return true;
+                }
+                return handleLeaderboard(player);
+
+            case "stats":
+                if (!player.hasPermission("arenafighter.fight")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to see stats.");
+                    return true;
+                }
+                return handleStats(player, args);
 
             case "help":
             default:
@@ -124,6 +140,7 @@ public class FightCommand implements CommandExecutor {
         if (args.length >= 3) {
             try {
                 wagerAmount = Double.parseDouble(args[2]);
+                wagerAmount = Bet.roundDownTwoDecimals(wagerAmount);  // <-- round down here
                 if (wagerAmount < 0) {
                     challenger.sendMessage(ChatColor.RED + "Wager amount cannot be negative.");
                     return true;
@@ -223,6 +240,7 @@ public class FightCommand implements CommandExecutor {
         }
 
         double wager = challenge.getWagerAmount();
+        double truncatedWager = Bet.roundDownTwoDecimals(wager);
 
         // Balance check for wagers
         if (wager > 0) {
@@ -239,7 +257,7 @@ public class FightCommand implements CommandExecutor {
         // Broadcast fight accept with wager message when there is a wager
         String line1 = ChatColor.GOLD + accepter.getName() + ChatColor.YELLOW + " has accepted " +
                 ChatColor.GOLD + challenger.getName() + ChatColor.YELLOW + "'s duel request";
-        String line2 = (wager > 0 ? ChatColor.YELLOW + " with a wager of " + ChatColor.GREEN + wager : "") + ChatColor.YELLOW + "!";
+        String line2 = (truncatedWager > 0 ? ChatColor.YELLOW + " with a wager of " + ChatColor.GREEN + truncatedWager : "") + ChatColor.YELLOW + "!";
         String line3 = ChatColor.YELLOW + "The fight will begin in 30 seconds...";
 
         Bukkit.broadcastMessage(line1);
@@ -264,6 +282,42 @@ public class FightCommand implements CommandExecutor {
         return true;
     }
 
+    private boolean handleLeaderboard(Player player) {
+        Map<String, Integer> topPlayers = fightManager.getTopPlayersByWins();
+
+        if (topPlayers.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "No leaderboard data found.");
+            return true;
+        }
+
+        player.sendMessage(ChatColor.GOLD + "=== ArenaFighter Leaderboard ===");
+        int rank = 1;
+        for (Map.Entry<String, Integer> entry : topPlayers.entrySet()) {
+            player.sendMessage(ChatColor.YELLOW + "#" + rank + " " + ChatColor.AQUA + entry.getKey()
+                    + ChatColor.WHITE + " - " + ChatColor.GREEN + entry.getValue() + " wins");
+            rank++;
+        }
+
+        return true;
+    }
+
+    private boolean handleStats(Player player, String[] args) {
+        String targetName;
+
+        if (args.length == 1) {
+            // Show own stats
+            targetName = player.getName();
+        } else {
+            targetName = args[1];
+        }
+
+        List<String> statsLines = fightManager.getPlayerStatsByName(targetName);
+        for (String line : statsLines) {
+            player.sendMessage(line);
+        }
+        return true;
+    }
+
     private boolean handleCancel(Player player) {
         if (!fightManager.isInFight(player)) {
             player.sendMessage(ChatColor.RED + "You're not in a fight.");
@@ -280,6 +334,8 @@ public class FightCommand implements CommandExecutor {
         player.sendMessage(ChatColor.YELLOW + "/fight challenge <player> <wager>" + ChatColor.WHITE + " - Challenge a player");
         player.sendMessage(ChatColor.YELLOW + "/fight accept <player>" + ChatColor.WHITE + " - Accept a challenge");
         player.sendMessage(ChatColor.YELLOW + "/fight cancel" + ChatColor.WHITE + " - Cancel current fight");
+        player.sendMessage(ChatColor.YELLOW + "/fight leaderboard" + ChatColor.WHITE + " - Show top 10 fighters");
+        player.sendMessage(ChatColor.YELLOW + "/fight stats <player>" + ChatColor.WHITE + " - Show player stats");
         player.sendMessage(ChatColor.YELLOW + "/fight help" + ChatColor.WHITE + " - Show help");
         player.sendMessage(ChatColor.YELLOW + "/spectate <arena>" + ChatColor.WHITE + " - Start spectating");
     }

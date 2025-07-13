@@ -2,6 +2,7 @@ package org.garsooon.arenafighter.Fight;
 
 import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityPlayer;
+import com.legacyminecraft.poseidon.util.*;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
@@ -12,14 +13,18 @@ import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaFighter;
 import org.garsooon.arenafighter.Arena.ArenaManager;
+import org.garsooon.arenafighter.Data.Bet;
 import org.garsooon.arenafighter.Data.Challenge;
+import org.garsooon.arenafighter.Data.PlayerDataManager;
 import org.garsooon.arenafighter.Economy.Method;
 import org.garsooon.arenafighter.Economy.Methods;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class FightManager {
 
@@ -35,6 +40,9 @@ public class FightManager {
     private final Map<UUID, Long> punishments = new HashMap<>();
     private final long punishmentDurationMillis;
     private final Method economy;
+    private final File statsFile;
+    private Map<String, Object> stats; // Key: UUID.toString()
+    private final PlayerDataManager playerDataManager = new PlayerDataManager();
 
     public FightManager(ArenaFighter plugin, ArenaManager arenaManager, Method economy) {
         this.plugin = plugin;
@@ -45,6 +53,8 @@ public class FightManager {
         this.pendingChallenges = new HashMap<>();
         this.spectatorOriginalLocations = new HashMap<>();
         this.punishmentDurationMillis = loadPunishmentDuration(plugin.getDataFolder());
+        this.statsFile = new File(plugin.getDataFolder(), "stats.yml");
+        loadStats();
     }
 
     private long loadPunishmentDuration(File dataFolder) {
@@ -156,6 +166,8 @@ public class FightManager {
     }
 
     public boolean startFight(Player player1, Player player2, double wager) {
+        double truncatedWager = Bet.roundDownTwoDecimals(wager);
+
         if (isInFight(player1) || isInFight(player2)) return false;
 
         // Final balance check before fight begins
@@ -241,7 +253,7 @@ public class FightManager {
                 ChatColor.GREEN + arena.getName();
 
         if (wager > 0) {
-            message += ChatColor.YELLOW + " with a wager of " + ChatColor.GOLD + wager;
+            message += ChatColor.YELLOW + " with a wager of " + ChatColor.GOLD + truncatedWager;
         }
 
         fight.clearBets();
@@ -302,11 +314,15 @@ public class FightManager {
         double wager = fight.getWager();
 
         if (wager > 0) {
+            double truncatedWager = Bet.roundDownTwoDecimals(wager);
             deposit(winner, wager * 2);
             winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
         }
 
         fight.resolveBets(winner.getName());
+
+        incrementStat(winner.getUniqueId(), "wins", winner.getName());
+        incrementStat(loser.getUniqueId(), "losses", loser.getName());
 
         String message = ChatColor.GOLD + winner.getName() +
                 ChatColor.YELLOW + " has defeated " +
@@ -315,7 +331,8 @@ public class FightManager {
                 ChatColor.GREEN + fight.getArena().getName();
 
         if (wager > 0) {
-            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + (wager * 2);
+            double truncatedWager = Bet.roundDownTwoDecimals(wager * 2);
+            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + truncatedWager;
         }
 
         message += ChatColor.YELLOW + "!";
@@ -773,7 +790,7 @@ public class FightManager {
         return spectatorOriginalLocations.containsKey(player.getUniqueId());
     }
 
-    //ECO Wager per Challenge data
+    //ECO Wager per Challenge data start
     private static class FightChallenge {
         private final UUID challengerId;
         private final UUID targetId;
@@ -797,4 +814,170 @@ public class FightManager {
             return wager;
         }
     }
+    //ECO Wager per Challenge data end
+
+    //Stat and leaderboard functions start
+    public static int getInt(Object obj) {
+        if (obj == null) return 0;
+        if (obj instanceof Integer) return (Integer) obj;
+        if (obj instanceof Number) return ((Number) obj).intValue();
+        try {
+            return Integer.parseInt(obj.toString());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void loadStats() {
+        stats = new HashMap<>();
+        if (!statsFile.exists()) return;
+
+        try (FileInputStream fis = new FileInputStream(statsFile)) {
+            Yaml yaml = new Yaml();
+            Object data = yaml.load(fis);
+            if (data instanceof Map) {
+                stats = (Map<String, Object>) data;
+            }
+        } catch (Exception e) {
+            plugin.getServer().getLogger().warning("Failed to load stats.yml: " + e.getMessage());
+        }
+    }
+
+    private void saveStats() {
+        try (FileWriter writer = new FileWriter(statsFile)) {
+            Yaml yaml = new Yaml();
+            yaml.dump(stats, writer);
+        } catch (Exception e) {
+            plugin.getServer().getLogger().warning("Failed to save stats.yml: " + e.getMessage());
+        }
+    }
+
+    //I LOVE SUPPRESS WARNINGS I LOVE SUPPRESS WARNINGS I LOVE SUPPRESS WARNINGS, GOD I LOVE SUPPRESS WARNINGS
+    @SuppressWarnings("unchecked")
+    public void incrementStat(UUID uuid, String key, String username) {
+        String uuidKey = uuid.toString();
+
+        Map<String, Object> playerStats = (Map<String, Object>) stats.get(uuidKey);
+        if (playerStats == null) {
+            playerStats = new HashMap<>();
+            stats.put(uuidKey, playerStats);
+        }
+
+        playerStats.put("username", username);
+
+        PlayerDataManager.setPlayer(uuid, username);
+
+        int current = 0;
+        Object val = playerStats.get(key);
+        if (val instanceof Number) {
+            current = ((Number) val).intValue();
+        }
+
+        playerStats.put(key, current + 1);
+        saveStats();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Integer> getTopPlayersByWins() {
+        Map<String, Integer> winsMap = new HashMap<>();
+
+        for (Map.Entry<String, Object> entry : stats.entrySet()) {
+            String uuidStr = entry.getKey();
+            Object value = entry.getValue();
+
+            if (value instanceof Map) {
+                Map<String, Object> playerStats = (Map<String, Object>) value;
+                Object winsObj = playerStats.get("wins");
+                String storedName = (String) playerStats.get("username");
+
+                if (winsObj instanceof Number && storedName != null) {
+                    winsMap.put(storedName, ((Number) winsObj).intValue());
+                }
+            }
+        }
+
+        return winsMap.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(10)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new
+                ));
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getPlayerStats(UUID uuid) {
+        Object raw = stats.get(uuid.toString());
+
+        if (!(raw instanceof Map)) {
+            return Collections.singletonList(ChatColor.RED + "No stats found for " + uuid + ".");
+        }
+
+        // Checked type, safe to cast. In other words I LOVE SUPPRESS WARNING!!!11!
+        Map<String, Object> playerStats = (Map<String, Object>) raw;
+
+        int wins = getInt(playerStats.get("wins"));
+        int losses = getInt(playerStats.get("losses"));
+
+        // Resolve username from PlayerDataManager or fallback to a UUID string
+        String displayName = PlayerDataManager.getUsername(uuid);
+        if (displayName == null) {
+            displayName = uuid.toString();
+        }
+
+        List<String> lines = new ArrayList<>();
+        lines.add(ChatColor.GOLD + "=== Stats for " + ChatColor.AQUA + displayName + ChatColor.GOLD + " ===");
+        lines.add(ChatColor.YELLOW + "Wins: " + ChatColor.GREEN + wins);
+        lines.add(ChatColor.YELLOW + "Losses: " + ChatColor.RED + losses);
+
+        return lines;
+    }
+
+    // For /fight stats <name>
+    @SuppressWarnings("unchecked")
+    public List<String> getPlayerStatsByName(String name) {
+        UUID uuid = null;
+
+        // Search for UUID based on stored username in the raw YAML map
+        for (String key : stats.keySet()) {
+            Object raw = stats.get(key);
+            if (raw instanceof Map) {
+                Map<String, Object> entry = (Map<String, Object>) raw;
+                String storedName = (String) entry.get("username");
+                if (storedName != null && storedName.equalsIgnoreCase(name)) {
+                    try {
+                        uuid = UUID.fromString(key);
+                        break;
+                    } catch (IllegalArgumentException ignored) {}
+                }
+            }
+        }
+
+        if (uuid == null) {
+            return Collections.singletonList(ChatColor.RED + "No stats found for " + name + ".");
+        }
+
+        Object raw = stats.get(uuid.toString());
+        if (!(raw instanceof Map)) {
+            return Collections.singletonList(ChatColor.RED + "No stats found for " + name + ".");
+        }
+
+        Map<String, Object> playerStats = (Map<String, Object>) raw;
+        int wins = getInt(playerStats.get("wins"));
+        int losses = getInt(playerStats.get("losses"));
+        String displayName = (String) playerStats.get("username");
+        if (displayName == null) displayName = uuid.toString().substring(0, 8);
+
+        List<String> lines = new ArrayList<>();
+        lines.add(ChatColor.GOLD + "=== Stats for " + ChatColor.AQUA + displayName + ChatColor.GOLD + " ===");
+        lines.add(ChatColor.YELLOW + "Wins: " + ChatColor.GREEN + wins);
+        lines.add(ChatColor.YELLOW + "Losses: " + ChatColor.RED + losses);
+
+        return lines;
+    }
+    // Stat and leaderboard functions end
+
 }

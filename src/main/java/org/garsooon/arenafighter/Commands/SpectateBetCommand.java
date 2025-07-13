@@ -9,6 +9,7 @@ import org.garsooon.arenafighter.Fight.FightManager;
 import org.garsooon.arenafighter.Fight.Fight;
 import org.garsooon.arenafighter.Economy.Methods;
 import org.garsooon.arenafighter.Economy.Method;
+import org.garsooon.arenafighter.Data.Bet;
 
 public class SpectateBetCommand implements CommandExecutor {
 
@@ -29,7 +30,7 @@ public class SpectateBetCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Economy plugin not detected. Betting is disabled.");
             return true;
         }
-        
+
         if (args.length != 2) {
             player.sendMessage(ChatColor.RED + "Usage: /bet <fighter> <amount>");
             return true;
@@ -40,6 +41,11 @@ public class SpectateBetCommand implements CommandExecutor {
 
         try {
             amount = Double.parseDouble(args[1]);
+            amount = Bet.roundDownTwoDecimals(amount);
+            if (amount <= 0) {
+                player.sendMessage(ChatColor.RED + "Bet amount must be greater than 0.");
+                return true;
+            }
         } catch (NumberFormatException e) {
             player.sendMessage(ChatColor.RED + "Invalid amount.");
             return true;
@@ -58,7 +64,6 @@ public class SpectateBetCommand implements CommandExecutor {
             return true;
         }
 
-        //FUTURE USE
         if (fight.hasStarted()) {
             player.sendMessage(ChatColor.RED + "You cannot bet, the fight has already started.");
             return true;
@@ -69,13 +74,13 @@ public class SpectateBetCommand implements CommandExecutor {
             return true;
         }
 
-        if (!fight.placeBet(player.getName(), fighterName, amount)) {
-            player.sendMessage(ChatColor.RED + "You have already placed a bet.");
+        if (fight.containsPlayer(player)) {
+            player.sendMessage(ChatColor.RED + "You cannot bet on a fight you are participating in.");
             return true;
         }
 
-        if (fight.containsPlayer(player)) {
-            player.sendMessage(ChatColor.RED + "You cannot bet on a fight you are participating in.");
+        if (!fight.placeBet(player.getName(), fighterName, amount)) {
+            player.sendMessage(ChatColor.RED + "You have already placed a bet.");
             return true;
         }
 
@@ -83,8 +88,13 @@ public class SpectateBetCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Failed to withdraw funds.");
             return true;
         }
+        String msg = ChatColor.AQUA + player.getName() +
+                ChatColor.YELLOW + " placed a bet of " +
+                ChatColor.GOLD + amount +
+                ChatColor.YELLOW + " on " +
+                ChatColor.GREEN + fighterName + ChatColor.YELLOW + "!";
+        player.getServer().broadcastMessage(msg);
 
-        player.sendMessage(ChatColor.GREEN + "You placed a bet of " + amount + " on " + fighterName + ".");
         return true;
     }
 }
