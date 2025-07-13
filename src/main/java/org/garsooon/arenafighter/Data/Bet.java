@@ -1,5 +1,8 @@
 package org.garsooon.arenafighter.Data;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 public class Bet {
     private final String spectator;
     private final String fighter;
@@ -22,5 +25,11 @@ public class Bet {
 
     public double getAmount() {
         return amount;
+    }
+
+    public static double roundDownTwoDecimals(double value) {
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(2, RoundingMode.DOWN); // truncate to 2 decimal places, no rounding up
+        return bd.doubleValue();
     }
 }

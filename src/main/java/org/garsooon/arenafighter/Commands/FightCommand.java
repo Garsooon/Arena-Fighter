@@ -7,6 +7,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.garsooon.arenafighter.Data.Bet;
 import org.garsooon.arenafighter.Data.Challenge;
 import org.garsooon.arenafighter.Economy.Method;
 import org.garsooon.arenafighter.Economy.Methods;
@@ -139,6 +140,7 @@ public class FightCommand implements CommandExecutor {
         if (args.length >= 3) {
             try {
                 wagerAmount = Double.parseDouble(args[2]);
+                wagerAmount = Bet.roundDownTwoDecimals(wagerAmount);  // <-- round down here
                 if (wagerAmount < 0) {
                     challenger.sendMessage(ChatColor.RED + "Wager amount cannot be negative.");
                     return true;
@@ -238,6 +240,7 @@ public class FightCommand implements CommandExecutor {
         }
 
         double wager = challenge.getWagerAmount();
+        double truncatedWager = Bet.roundDownTwoDecimals(wager);
 
         // Balance check for wagers
         if (wager > 0) {
@@ -254,7 +257,7 @@ public class FightCommand implements CommandExecutor {
         // Broadcast fight accept with wager message when there is a wager
         String line1 = ChatColor.GOLD + accepter.getName() + ChatColor.YELLOW + " has accepted " +
                 ChatColor.GOLD + challenger.getName() + ChatColor.YELLOW + "'s duel request";
-        String line2 = (wager > 0 ? ChatColor.YELLOW + " with a wager of " + ChatColor.GREEN + wager : "") + ChatColor.YELLOW + "!";
+        String line2 = (truncatedWager > 0 ? ChatColor.YELLOW + " with a wager of " + ChatColor.GREEN + truncatedWager : "") + ChatColor.YELLOW + "!";
         String line3 = ChatColor.YELLOW + "The fight will begin in 30 seconds...";
 
         Bukkit.broadcastMessage(line1);

@@ -13,6 +13,7 @@ import org.bukkit.ChatColor;
 import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaFighter;
 import org.garsooon.arenafighter.Arena.ArenaManager;
+import org.garsooon.arenafighter.Data.Bet;
 import org.garsooon.arenafighter.Data.Challenge;
 import org.garsooon.arenafighter.Data.PlayerDataManager;
 import org.garsooon.arenafighter.Economy.Method;
@@ -165,6 +166,8 @@ public class FightManager {
     }
 
     public boolean startFight(Player player1, Player player2, double wager) {
+        double truncatedWager = Bet.roundDownTwoDecimals(wager);
+
         if (isInFight(player1) || isInFight(player2)) return false;
 
         // Final balance check before fight begins
@@ -250,7 +253,7 @@ public class FightManager {
                 ChatColor.GREEN + arena.getName();
 
         if (wager > 0) {
-            message += ChatColor.YELLOW + " with a wager of " + ChatColor.GOLD + wager;
+            message += ChatColor.YELLOW + " with a wager of " + ChatColor.GOLD + truncatedWager;
         }
 
         fight.clearBets();
@@ -311,6 +314,7 @@ public class FightManager {
         double wager = fight.getWager();
 
         if (wager > 0) {
+            double truncatedWager = Bet.roundDownTwoDecimals(wager);
             deposit(winner, wager * 2);
             winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
         }
@@ -327,7 +331,8 @@ public class FightManager {
                 ChatColor.GREEN + fight.getArena().getName();
 
         if (wager > 0) {
-            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + (wager * 2);
+            double truncatedWager = Bet.roundDownTwoDecimals(wager * 2);
+            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + truncatedWager;
         }
 
         message += ChatColor.YELLOW + "!";
