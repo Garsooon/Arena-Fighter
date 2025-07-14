@@ -17,6 +17,7 @@ It enables players to duel each other in dedicated arenas, providing a seamless 
 - Automatic teleportation of players to the arena and back after the duel
 - Configurable punishments for combat logging and command usage
 - Economy support for wagers and bets
+- Player Stats and leaderboard
 
 ---
 
@@ -33,6 +34,13 @@ It enables players to duel each other in dedicated arenas, providing a seamless 
 3. Ensure [Poseidon](https://github.com/retromcorg/Project-Poseidon) is also installed.
 4. Restart the server to load the plugin.
 5. Add the permission nodes `arenafighter.fight` or `arenafighter.admin` to your permission groups if applicable.
+
+---
+
+## Permission Nodes
+
+`arenafighter.fight` - Gives access to use and fight in Arenas
+`arenafighter.admin` - Gives access to admin commands such as Arena creation.
 
 ---
 
