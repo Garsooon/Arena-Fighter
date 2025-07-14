@@ -39,7 +39,7 @@ It enables players to duel each other in dedicated arenas, providing a seamless 
 
 ## Permission Nodes
 
-`arenafighter.fight` - Gives access to use and fight in Arenas
+`arenafighter.fight` - Gives access to use and fight in Arenas</br>
 `arenafighter.admin` - Gives access to admin commands such as Arena creation.
 
 ---
