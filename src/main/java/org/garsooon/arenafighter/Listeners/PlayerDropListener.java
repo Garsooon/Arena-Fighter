@@ -2,10 +2,8 @@ package org.garsooon.arenafighter.Listeners;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.entity.Player;
-import org.garsooon.arenafighter.Fight.Fight;
 import org.garsooon.arenafighter.Fight.FightManager;
 
 public class PlayerDropListener implements Listener {

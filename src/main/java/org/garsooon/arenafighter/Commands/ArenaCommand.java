@@ -11,6 +11,7 @@ import org.garsooon.arenafighter.Arena.ArenaManager;
 
 import java.util.List;
 
+@SuppressWarnings("SameReturnValue")
 public class ArenaCommand implements CommandExecutor {
 
     private final ArenaManager arenaManager;
@@ -19,6 +20,7 @@ public class ArenaCommand implements CommandExecutor {
         this.arenaManager = arenaManager;
     }
 
+    @SuppressWarnings("DuplicateBranchesInSwitch")
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {

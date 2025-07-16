@@ -8,6 +8,7 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
 
+@SuppressWarnings({"ResultOfMethodCallIgnored", "unused"})
 public class ArenaManager {
 
     private final ArenaFighter plugin;

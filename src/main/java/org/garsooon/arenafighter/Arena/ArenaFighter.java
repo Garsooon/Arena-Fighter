@@ -26,11 +26,14 @@ import java.util.Set;
 
 import static org.bukkit.Bukkit.getLogger;
 
+@SuppressWarnings({"ResultOfMethodCallIgnored", "unused"})
 public class ArenaFighter extends JavaPlugin {
 
     private ArenaManager arenaManager;
     private FightManager fightManager;
+    @SuppressWarnings("FieldCanBeLocal")
     private Method economy;
+    @SuppressWarnings("FieldMayBeFinal")
     private Set<String> blockedCommands = new HashSet<>();
 
     @Override
@@ -145,6 +148,7 @@ public class ArenaFighter extends JavaPlugin {
         getLogger().info("Configuration file ready for loading");
     }
 
+    @SuppressWarnings({"IOStreamConstructor", "VulnerableCodeUsages"})
     private void loadBlockedCommands() {
         try {
             File configFile = new File(getDataFolder(), "config.yml");

@@ -10,6 +10,7 @@ import org.garsooon.arenafighter.Economy.Methods;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class Fight {
 
     private final Player player1;

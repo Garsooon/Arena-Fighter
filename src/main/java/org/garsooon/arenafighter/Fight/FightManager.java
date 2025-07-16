@@ -2,7 +2,6 @@ package org.garsooon.arenafighter.Fight;
 
 import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityPlayer;
-import com.legacyminecraft.poseidon.util.*;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
@@ -14,10 +13,8 @@ import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaFighter;
 import org.garsooon.arenafighter.Arena.ArenaManager;
 import org.garsooon.arenafighter.Data.Bet;
-import org.garsooon.arenafighter.Data.Challenge;
 import org.garsooon.arenafighter.Data.PlayerDataManager;
 import org.garsooon.arenafighter.Economy.Method;
-import org.garsooon.arenafighter.Economy.Methods;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -26,6 +23,7 @@ import java.io.FileWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@SuppressWarnings({"deprecation", "InstantiationOfUtilityClass", "unused", "VulnerableCodeUsages"})
 public class FightManager {
 
     private final ArenaFighter plugin;
@@ -122,6 +120,7 @@ public class FightManager {
     }
 
     // Helpers for ECO function via Method interface
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean tryWithdraw(Player player, double amount) {
         if (amount <= 0) return true;
         boolean success = economy.withdrawPlayer(player.getName(), amount, player.getWorld());
@@ -136,6 +135,7 @@ public class FightManager {
         economy.depositPlayer(player.getName(), amount, player.getWorld());
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean hasSufficientFunds(Player player, double amount) {
         return economy != null && economy.hasEnough(player.getName(), amount, player.getWorld());
     }
@@ -398,6 +398,7 @@ public class FightManager {
                                     }
 
                                     Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                                        @SuppressWarnings("DataFlowIssue")
                                         @Override
                                         public void run() {
                                             player.getInventory().clear();
@@ -490,6 +491,7 @@ public class FightManager {
         return "ItemStack{" + item.getType() + " x " + item.getAmount() + "}";
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean deepInventoryMatch(ItemStack[] current, ItemStack[] original) {
         if (current == null || original == null || current.length != original.length) return false;
 
@@ -503,6 +505,7 @@ public class FightManager {
         return true;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean deepItemEquals(ItemStack a, ItemStack b) {
         if (a == null && b == null) return true;
         if (a == null || b == null) return false;
@@ -853,7 +856,6 @@ public class FightManager {
         }
     }
 
-    //I LOVE SUPPRESS WARNINGS I LOVE SUPPRESS WARNINGS I LOVE SUPPRESS WARNINGS, GOD I LOVE SUPPRESS WARNINGS
     @SuppressWarnings("unchecked")
     public void incrementStat(UUID uuid, String key, String username) {
         String uuidKey = uuid.toString();

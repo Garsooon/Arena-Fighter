@@ -20,6 +20,7 @@ public class Challenge {
         return challengerName;
     }
 
+    @SuppressWarnings("unused")
     public long getTimestamp() {
         return timestamp;
     }

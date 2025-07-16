@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 // Utility class to try and stop the feature bloat in FightManager
+@SuppressWarnings("unused")
 public class PlayerDataManager {
     private static final Map<UUID, String> uuidToUsername = new HashMap<>();
     private static final Map<String, UUID> usernameToUUID = new HashMap<>();

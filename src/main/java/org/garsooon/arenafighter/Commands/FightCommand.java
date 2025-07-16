@@ -18,12 +18,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("SameReturnValue")
 public class FightCommand implements CommandExecutor {
 
     private final Plugin plugin;
     private final FightManager fightManager;
     private final Map<String, Challenge> pendingChallenges = new HashMap<>();
     private final Map<String, Integer> timeoutTasks = new HashMap<>();
+    @SuppressWarnings("FieldCanBeLocal")
     private final long TIMEOUT_TICKS = 20 * 30; // 30 seconds
 
     public FightCommand(Plugin plugin, FightManager fightManager) {
