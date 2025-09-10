@@ -40,6 +40,11 @@ public class SpectateBetCommand implements CommandExecutor {
         double amount;
 
         try {
+            String[] split = args[1].split("\\.");
+            if (split.length == 2 && split[1].length() > 2) {
+                player.sendMessage(ChatColor.RED + "Bets can only have up to two decimals.");
+                return true;
+            }
             amount = Double.parseDouble(args[1]);
             amount = Bet.roundDownTwoDecimals(amount);
             if (amount <= 0) {

@@ -141,8 +141,13 @@ public class FightCommand implements CommandExecutor {
         double wagerAmount = 0.0;
         if (args.length >= 3) {
             try {
+                String[] split = args[2].split("\\.");
+                if (split.length == 2 && split[1].length() > 2) {
+                    challenger.sendMessage(ChatColor.RED + "Wagers can only have up to two decimals.");
+                    return true;
+                }
                 wagerAmount = Double.parseDouble(args[2]);
-                wagerAmount = Bet.roundDownTwoDecimals(wagerAmount);  // <-- round down here
+                wagerAmount = Bet.roundDownTwoDecimals(wagerAmount);
                 if (wagerAmount < 0) {
                     challenger.sendMessage(ChatColor.RED + "Wager amount cannot be negative.");
                     return true;
