@@ -127,6 +127,10 @@ public class Fight {
                 double share = (bet.getAmount() / winnerPool) * loserPool;
                 double payout = base + share;
 
+                payout = Math.max(payout, base);
+
+                payout = Math.floor(payout * 100) / 100.0;
+
                 Methods.getMethod().depositPlayer(bet.getSpectator(), payout, p.getWorld());
                 p.sendMessage(ChatColor.GOLD + "You won your bet on " + winner + "! You receive " + payout);
             } else {
