@@ -36,7 +36,7 @@ public class FightManager {
     private final Map<UUID, ItemStack[]> originalArmor = new HashMap<>();
     private final HashMap<UUID, Integer> postFightCooldowns = new HashMap<>();
     private final Map<UUID, FightChallenge> pendingChallenges;
-    private final Map<UUID, Location> spectatorOriginalLocations;
+//    private final Map<UUID, Location> spectatorOriginalLocations;
     private final Map<UUID, Long> punishments = new HashMap<>();
     private final long punishmentDurationMillis;
     private final Method economy;
@@ -51,7 +51,7 @@ public class FightManager {
         this.activeFights = new HashMap<>();
         this.originalLocations = new HashMap<>();
         this.pendingChallenges = new HashMap<>();
-        this.spectatorOriginalLocations = new HashMap<>();
+//        this.spectatorOriginalLocations = new HashMap<>();
         this.punishmentDurationMillis = loadPunishmentDuration(plugin.getDataFolder());
         this.statsFile = new File(plugin.getDataFolder(), "stats.yml");
         loadStats();
@@ -320,7 +320,7 @@ public class FightManager {
             healAndFeedPlayer(loser);
         }
 
-        stopAllSpectators();
+//        stopAllSpectators();
 
         double wager = fight.getWager();
 
@@ -613,7 +613,7 @@ public class FightManager {
             healAndFeedPlayer(otherPlayer);
         }
 
-        stopAllSpectators();
+//        stopAllSpectators();
 
         String message = ChatColor.RED + "Fight cancelled!";
         player.sendMessage(message);
@@ -653,7 +653,7 @@ public class FightManager {
 
         activeFights.clear();
         originalLocations.clear();
-        stopAllSpectators();
+//        stopAllSpectators();
     }
 
     public boolean hasPendingChallenge(Player player) {
@@ -724,10 +724,6 @@ public class FightManager {
 
     public boolean startSpectating(Player player) {
         UUID uuid = player.getUniqueId();
-        if (spectatorOriginalLocations.containsKey(uuid)) {
-            player.sendMessage(ChatColor.RED + "You are already spectating.");
-            return false;
-        }
 
         Fight fight = null;
         for (Fight f : activeFights.values()) {
@@ -750,7 +746,6 @@ public class FightManager {
             return false;
         }
 
-        spectatorOriginalLocations.put(uuid, player.getLocation().clone());
         player.teleport(specSpawn);
         player.sendMessage(ChatColor.YELLOW + "You are now spectating the fight between " +
                 fight.getPlayer1().getName() + " and " + fight.getPlayer2().getName() + ".");
@@ -759,11 +754,6 @@ public class FightManager {
 
     public boolean startSpectating(Player player, String arenaName) {
         UUID uuid = player.getUniqueId();
-
-        if (spectatorOriginalLocations.containsKey(uuid)) {
-            player.sendMessage(ChatColor.RED + "You are already spectating.");
-            return false;
-        }
 
         Arena arena = arenaManager.getArena(arenaName);
         if (arena == null) {
@@ -777,39 +767,28 @@ public class FightManager {
             return false;
         }
 
-        spectatorOriginalLocations.put(uuid, player.getLocation().clone());
         player.teleport(specSpawn);
         player.sendMessage(ChatColor.YELLOW + "You are now spectating arena: " + ChatColor.AQUA + arenaName);
-        player.sendMessage(ChatColor.YELLOW + "Use /spectate to return to your original location.");
         return true;
     }
 
     public boolean stopSpectating(Player player) {
-        UUID uuid = player.getUniqueId();
-        Location original = spectatorOriginalLocations.remove(uuid);
-
-        if (original != null) {
-            player.teleport(original);
-            player.sendMessage(ChatColor.YELLOW + "Returned from spectating.");
-            return true;
-        }
-
-        player.sendMessage(ChatColor.RED + "You are not spectating.");
-        return false;
+        player.sendMessage(ChatColor.YELLOW + "You have stopped spectating.");
+        return true;
     }
 
-    public void stopAllSpectators() {
-        for (UUID uuid : new HashMap<>(spectatorOriginalLocations).keySet()) {
-            Player player = plugin.getServer().getPlayer(uuid);
-            if (player != null && player.isOnline()) {
-                stopSpectating(player);
-            }
-        }
-    }
+//    public void stopAllSpectators() {
+//        for (UUID uuid : new HashMap<>(spectatorOriginalLocations).keySet()) {
+//            Player player = plugin.getServer().getPlayer(uuid);
+//            if (player != null && player.isOnline()) {
+//                stopSpectating(player);
+//            }
+//        }
+//    }
 
-    public boolean isSpectating(Player player) {
-        return spectatorOriginalLocations.containsKey(player.getUniqueId());
-    }
+//    public boolean isSpectating(Player player) {
+//        return spectatorOriginalLocations.containsKey(player.getUniqueId());
+//    }
 
     //ECO Wager per Challenge data start
     private static class FightChallenge {
