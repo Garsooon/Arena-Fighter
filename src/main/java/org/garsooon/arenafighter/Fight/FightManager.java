@@ -29,6 +29,8 @@ public class FightManager {
     private final ArenaFighter plugin;
     private final ArenaManager arenaManager;
     private final Map<UUID, Fight> activeFights;
+    private final Set<UUID> fightParticipants = new HashSet<>();
+    private final Set<UUID> recentlyDiedInArena = new HashSet<>();
     private final Map<UUID, Location> originalLocations;
     private final Map<UUID, ItemStack[]> originalInventories = new HashMap<>();
     private final Map<UUID, ItemStack[]> originalArmor = new HashMap<>();
@@ -210,6 +212,9 @@ public class FightManager {
         activeFights.put(player1.getUniqueId(), fight);
         activeFights.put(player2.getUniqueId(), fight);
 
+        fightParticipants.add(fight.getPlayer1().getUniqueId());
+        fightParticipants.add(fight.getPlayer2().getUniqueId());
+
         arenaManager.occupyArena(arena);
 
         forceCloseInventory(player1);
@@ -266,8 +271,14 @@ public class FightManager {
         Fight fight = activeFights.get(winner.getUniqueId());
         if (fight == null) return;
 
+        markRecentlyDiedInArena(winner.getUniqueId());
+        markRecentlyDiedInArena(loser.getUniqueId());
+
         activeFights.remove(winner.getUniqueId());
         activeFights.remove(loser.getUniqueId());
+
+        fightParticipants.remove(fight.getPlayer1().getUniqueId());
+        fightParticipants.remove(fight.getPlayer2().getUniqueId());
 
         arenaManager.releaseArena(fight.getArena());
 
@@ -367,7 +378,11 @@ public class FightManager {
                 }
 
                 if (savedArmor != null) {
-                    player.getInventory().setArmorContents(savedArmor);
+                    ItemStack[] armorCopy = new ItemStack[savedArmor.length];
+                    for (int i = 0; i < savedArmor.length; i++) {
+                        armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                    }
+                    player.getInventory().setArmorContents(armorCopy);
                 }
 
                 Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
@@ -408,7 +423,11 @@ public class FightManager {
                                             }
 
                                             if (savedArmor != null) {
-                                                player.getInventory().setArmorContents(savedArmor);
+                                                ItemStack[] armorCopy = new ItemStack[savedArmor.length];
+                                                for (int i = 0; i < savedArmor.length; i++) {
+                                                    armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                                                }
+                                                player.getInventory().setArmorContents(armorCopy);
                                             }
 
                                             player.updateInventory();
@@ -437,7 +456,6 @@ public class FightManager {
                                                             "(expected=" + expectedAmount + ", actual=" + actualAmount + ")");
                                                 }
                                             }
-
 
                                             player.updateInventory();
                                         }
@@ -982,4 +1000,37 @@ public class FightManager {
     }
     // Stat and leaderboard functions end
 
+    // Public getters
+    public boolean getIsInFight(Player player) {return activeFights.containsKey(player.getUniqueId());}
+
+    public boolean isFightParticipant(Player player) {
+        return fightParticipants.contains(player.getUniqueId());
+    }
+
+    public boolean isFightParticipant(UUID uuid) {return fightParticipants.contains(uuid);}
+
+    //TODO debug config
+    public boolean isFightParticipantByName(String name) {
+//        System.out.println("DEBUG: Checking isFightParticipantByName for name=" + name);
+        for (UUID uuid : fightParticipants) {
+            Player p = plugin.getServer().getPlayer(uuid);
+            if (p != null) {
+//                System.out.println("DEBUG: Comparing with participant name=" + p.getName());
+                if (p.getName().equalsIgnoreCase(name)) {
+//                    System.out.println("DEBUG: MATCH! " + name + " is in fightParticipants");
+                    return true;
+                }
+            } else {
+//                System.out.println("DEBUG: Player for UUID " + uuid + " is null (not online?)");
+            }
+        }
+//        System.out.println("DEBUG: NO MATCH for " + name + " in fightParticipants");
+        return false;
+    }
+
+    public void markRecentlyDiedInArena(UUID uuid) { recentlyDiedInArena.add(uuid);}
+
+    public boolean didRecentlyDieInArena(UUID uuid) {return recentlyDiedInArena.contains(uuid);}
+
+    public void clearRecentlyDiedInArena(UUID uuid) {recentlyDiedInArena.remove(uuid);}
 }
