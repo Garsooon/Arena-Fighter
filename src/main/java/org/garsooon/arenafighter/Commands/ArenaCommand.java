@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.garsooon.arenafighter.Arena.Arena;
 import org.garsooon.arenafighter.Arena.ArenaManager;
+import org.garsooon.arenafighter.Arena.ArenaFighter;
 
 import java.util.List;
 
@@ -15,9 +16,15 @@ import java.util.List;
 public class ArenaCommand implements CommandExecutor {
 
     private final ArenaManager arenaManager;
+    private final ArenaFighter plugin;
+
+    public ArenaCommand(ArenaManager arenaManager, ArenaFighter plugin) {
+        this.arenaManager = arenaManager;
+        this.plugin = plugin;
+    }
 
     public ArenaCommand(ArenaManager arenaManager) {
-        this.arenaManager = arenaManager;
+        this(arenaManager, null);
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
@@ -36,6 +43,10 @@ public class ArenaCommand implements CommandExecutor {
         }
 
         switch (args[0].toLowerCase()) {
+            case "enable":
+                return handleEnable(player);
+            case "disable":
+                return handleDisable(player);
             case "create":
                 return handleCreate(player, args);
             case "remove":
@@ -53,6 +64,30 @@ public class ArenaCommand implements CommandExecutor {
                 sendHelpMessage(player);
                 return true;
         }
+    }
+
+    private boolean handleEnable(Player player) {
+        if (!player.hasPermission("arenafighter.admin")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to enable ArenaFighter!");
+            return true;
+        }
+        if (plugin != null) {
+            plugin.setArenaEnabled(true);
+            player.sendMessage(ChatColor.GREEN + "Arena Fighter enabled!");
+        }
+        return true;
+    }
+
+    private boolean handleDisable(Player player) {
+        if (!player.hasPermission("arenafighter.admin")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to disable ArenaFighter!");
+            return true;
+        }
+        if (plugin != null) {
+            plugin.setArenaEnabled(false);
+            player.sendMessage(ChatColor.RED + "Arena Fighter disabled!");
+        }
+        return true;
     }
 
     private boolean handleCreate(Player player, String[] args) {
@@ -223,10 +258,11 @@ public class ArenaCommand implements CommandExecutor {
 
     private void sendHelpMessage(Player player) {
         player.sendMessage(ChatColor.GOLD + "=== Arena Fighter Commands ===");
+        player.sendMessage(ChatColor.YELLOW + "/arena enable" + ChatColor.WHITE + " - Enable Arena Fighter");
+        player.sendMessage(ChatColor.YELLOW + "/arena disable" + ChatColor.WHITE + " - Disable Arena Fighter");
         player.sendMessage(ChatColor.YELLOW + "/arena create <name>" + ChatColor.WHITE + " - Create a new arena");
         player.sendMessage(ChatColor.YELLOW + "/arena remove <name>" + ChatColor.WHITE + " - Remove an arena");
         player.sendMessage(ChatColor.YELLOW + "/arena list" + ChatColor.WHITE + " - List all arenas");
-        //Still don't know how to force a line break \n doesn't seem to work. New line as a work around.
         player.sendMessage(ChatColor.YELLOW + "/arena setspawn <name> <spawn1|spawn2|spectator>");
         player.sendMessage(ChatColor.WHITE + " - Set spawn point");
         player.sendMessage(ChatColor.YELLOW + "/arena tp <name> [spawn1|spawn2]" + ChatColor.WHITE + " - Teleport to an arena");

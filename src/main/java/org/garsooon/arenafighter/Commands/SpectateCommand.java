@@ -23,17 +23,6 @@ public class SpectateCommand implements CommandExecutor {
         }
         Player player = (Player) sender;
 
-        if (fightManager.isSpectating(player)) {
-            // If already spectating, stop and return
-            boolean stopped = fightManager.stopSpectating(player);
-            if (stopped) {
-                player.sendMessage(ChatColor.YELLOW + "You have stopped spectating and returned to your original location.");
-            } else {
-                player.sendMessage(ChatColor.RED + "An error occurred while stopping spectating.");
-            }
-            return true;
-        }
-
         // Start spectating: requires arena name for multi-arena support
         if (args.length == 0) {
             player.sendMessage(ChatColor.RED + "Usage: /spectate <arena>");

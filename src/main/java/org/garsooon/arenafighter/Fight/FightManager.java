@@ -29,12 +29,14 @@ public class FightManager {
     private final ArenaFighter plugin;
     private final ArenaManager arenaManager;
     private final Map<UUID, Fight> activeFights;
+    private final Set<UUID> fightParticipants = new HashSet<>();
+    private final Set<UUID> recentlyDiedInArena = new HashSet<>();
     private final Map<UUID, Location> originalLocations;
     private final Map<UUID, ItemStack[]> originalInventories = new HashMap<>();
     private final Map<UUID, ItemStack[]> originalArmor = new HashMap<>();
     private final HashMap<UUID, Integer> postFightCooldowns = new HashMap<>();
     private final Map<UUID, FightChallenge> pendingChallenges;
-    private final Map<UUID, Location> spectatorOriginalLocations;
+//    private final Map<UUID, Location> spectatorOriginalLocations;
     private final Map<UUID, Long> punishments = new HashMap<>();
     private final long punishmentDurationMillis;
     private final Method economy;
@@ -49,7 +51,7 @@ public class FightManager {
         this.activeFights = new HashMap<>();
         this.originalLocations = new HashMap<>();
         this.pendingChallenges = new HashMap<>();
-        this.spectatorOriginalLocations = new HashMap<>();
+//        this.spectatorOriginalLocations = new HashMap<>();
         this.punishmentDurationMillis = loadPunishmentDuration(plugin.getDataFolder());
         this.statsFile = new File(plugin.getDataFolder(), "stats.yml");
         loadStats();
@@ -210,6 +212,9 @@ public class FightManager {
         activeFights.put(player1.getUniqueId(), fight);
         activeFights.put(player2.getUniqueId(), fight);
 
+        fightParticipants.add(fight.getPlayer1().getUniqueId());
+        fightParticipants.add(fight.getPlayer2().getUniqueId());
+
         arenaManager.occupyArena(arena);
 
         forceCloseInventory(player1);
@@ -266,8 +271,14 @@ public class FightManager {
         Fight fight = activeFights.get(winner.getUniqueId());
         if (fight == null) return;
 
+        markRecentlyDiedInArena(winner.getUniqueId());
+        markRecentlyDiedInArena(loser.getUniqueId());
+
         activeFights.remove(winner.getUniqueId());
         activeFights.remove(loser.getUniqueId());
+
+        fightParticipants.remove(fight.getPlayer1().getUniqueId());
+        fightParticipants.remove(fight.getPlayer2().getUniqueId());
 
         arenaManager.releaseArena(fight.getArena());
 
@@ -278,66 +289,115 @@ public class FightManager {
 //        forceCloseInventory(loser);
 
         UUID loserId = loser.getUniqueId();
-        ItemStack[] inventory = loser.getInventory().getContents().clone();
-        ItemStack[] armor = loser.getInventory().getArmorContents().clone();
+        ItemStack[] inventory;
+        ItemStack[] armor;
+        try {
+            inventory = loser.getInventory().getContents().clone();
+            armor = loser.getInventory().getArmorContents().clone();
+        } catch (Exception e) {
+            return;
+        }
 
         ItemStack cursor = getItemOnCursor(loser);
         if (cursor != null && cursor.getTypeId() != 0) {
-            for (int i = 0; i < inventory.length; i++) {
-                if (inventory[i] == null || inventory[i].getTypeId() == 0) {
-                    inventory[i] = cursor;
-                    break;
+            boolean inserted = false;
+            try {
+                for (int i = 0; i < inventory.length; i++) {
+                    if (inventory[i] == null || inventory[i].getTypeId() == 0) {
+                        inventory[i] = cursor;
+                        inserted = true;
+                        break;
+                    }
                 }
+            } catch (IndexOutOfBoundsException e) {
             }
             setItemOnCursor(loser, new ItemStack(0));
         }
 
-        originalInventories.put(loserId, inventory);
-        originalArmor.put(loserId, armor);
+        try {
+            originalInventories.put(loserId, inventory);
+            originalArmor.put(loserId, armor);
+        } catch (Exception e) {
+        }
 
-        Location winnerOriginal = originalLocations.remove(winner.getUniqueId());
-        Location loserOriginal = originalLocations.remove(loser.getUniqueId());
+        Location winnerOriginal;
+        Location loserOriginal;
+        try {
+            winnerOriginal = originalLocations.remove(winner.getUniqueId());
+            loserOriginal = originalLocations.remove(loser.getUniqueId());
+        } catch (Exception e) {
+            winnerOriginal = null;
+            loserOriginal = null;
+        }
 
         if (winnerOriginal != null) {
-            winner.teleport(winnerOriginal);
-            healAndFeedPlayer(winner);
+            try {
+                winner.teleport(winnerOriginal);
+                healAndFeedPlayer(winner);
+            } catch (Exception e) {
+            }
         }
 
         if (loserOriginal != null) {
-            loser.teleport(loserOriginal);
-            restoreOriginalInventoryAndArmor(loser);
-            healAndFeedPlayer(loser);
+            try {
+                loser.teleport(loserOriginal);
+                restoreOriginalInventoryAndArmor(loser);
+                healAndFeedPlayer(loser);
+            } catch (Exception e) {
+            }
         }
 
-        stopAllSpectators();
+//        stopAllSpectators();
 
-        double wager = fight.getWager();
+        double wager;
+        try {
+            wager = fight.getWager();
+        } catch (Exception e) {
+            wager = 0;
+        }
 
         if (wager > 0) {
-            double truncatedWager = Bet.roundDownTwoDecimals(wager);
-            deposit(winner, wager * 2);
-            winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
+            try {
+                double truncatedWager = Bet.roundDownTwoDecimals(wager);
+                deposit(winner, wager * 2);
+                winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
+            } catch (Exception e) {
+            }
         }
 
-        fight.resolveBets(winner.getName());
-
-        incrementStat(winner.getUniqueId(), "wins", winner.getName());
-        incrementStat(loser.getUniqueId(), "losses", loser.getName());
-
-        String message = ChatColor.GOLD + winner.getName() +
-                ChatColor.YELLOW + " has defeated " +
-                ChatColor.RED + loser.getName() +
-                ChatColor.YELLOW + " in arena " +
-                ChatColor.GREEN + fight.getArena().getName();
-
-        if (wager > 0) {
-            double truncatedWager = Bet.roundDownTwoDecimals(wager * 2);
-            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + truncatedWager;
+        try {
+            fight.resolveBets(winner.getName());
+        } catch (Exception e) {
         }
 
-        message += ChatColor.YELLOW + "!";
+        try {
+            incrementStat(winner.getUniqueId(), "wins", winner.getName());
+            incrementStat(loser.getUniqueId(), "losses", loser.getName());
+        } catch (Exception e) {
+        }
 
-        plugin.getServer().broadcastMessage(message);
+        String message;
+        try {
+            message = ChatColor.GOLD + winner.getName() +
+                    ChatColor.YELLOW + " has defeated " +
+                    ChatColor.RED + loser.getName() +
+                    ChatColor.YELLOW + " in arena " +
+                    ChatColor.GREEN + fight.getArena().getName();
+
+            if (wager > 0) {
+                double truncatedWager = Bet.roundDownTwoDecimals(wager * 2);
+                message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + truncatedWager;
+            }
+
+            message += ChatColor.YELLOW + "!";
+        } catch (Exception e) {
+            message = "";
+        }
+
+        try {
+            plugin.getServer().broadcastMessage(message);
+        } catch (Exception e) {
+        }
     }
 
     // Boy I sure do love not having itemStackCursor in poseidon :clueless:
@@ -357,42 +417,73 @@ public class FightManager {
                 final ItemStack[] savedArmor = originalArmor.remove(uuid);
 
                 if (savedInventory != null) {
-                    player.getInventory().clear();
-
-                    // Fill inventory backwards to reduce stacking dupes
-                    for (int i = savedInventory.length - 1; i >= 0; i--) {
-                        ItemStack item = savedInventory[i];
-                        player.getInventory().setItem(i, item != null ? item.clone() : null);
+                    try {
+                        player.getInventory().clear();
+                        // Fill inventory backwards to reduce stacking dupes
+                        for (int i = savedInventory.length - 1; i >= 0; i--) {
+                            if (i < player.getInventory().getSize()) {
+                                ItemStack item = savedInventory[i];
+                                player.getInventory().setItem(i, item != null ? item.clone() : null);
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
 
                 if (savedArmor != null) {
-                    player.getInventory().setArmorContents(savedArmor);
+                    try {
+                        ItemStack[] armorCopy = new ItemStack[savedArmor.length];
+                        for (int i = 0; i < savedArmor.length; i++) {
+                            armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                        }
+                        player.getInventory().setArmorContents(armorCopy);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                     @Override
                     public void run() {
-                        player.updateInventory();
+                        try {
+                            player.updateInventory();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
 
                         // Shouldn't run now that inventories are saved on fight end.
                         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                             @Override
                             public void run() {
-                                boolean inventoryMismatch = !deepInventoryMatch(player.getInventory().getContents(), savedInventory);
-                                boolean armorMismatch = !deepInventoryMatch(player.getInventory().getArmorContents(), savedArmor);
+                                boolean inventoryMismatch = false;
+                                boolean armorMismatch = false;
+                                try {
+                                    inventoryMismatch = !deepInventoryMatch(player.getInventory().getContents(), savedInventory);
+                                    armorMismatch = !deepInventoryMatch(player.getInventory().getArmorContents(), savedArmor);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
 
                                 if (inventoryMismatch || armorMismatch) {
-                                    player.sendMessage(ChatColor.RED + "Your inventory failed to restore properly. Retrying...");
+                                    try {
+                                        player.sendMessage(ChatColor.RED + "Your inventory failed to restore properly. Retrying...");
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
 
                                     //Debug
                                     if (savedInventory != null) {
                                         ItemStack[] current = player.getInventory().getContents();
                                         for (int i = 0; i < savedInventory.length; i++) {
-                                            if (!deepItemEquals(savedInventory[i], current[i])) {
-                                                plugin.getServer().getLogger().warning("[ArenaFighter] Inventory slot mismatch at " + i + " for player " + player.getName());
-                                                plugin.getServer().getLogger().warning("Expected: " + itemToString(savedInventory[i]));
-                                                plugin.getServer().getLogger().warning("Found: " + itemToString(current[i]));
+                                            try {
+                                                if (!deepItemEquals(savedInventory[i], current[i])) {
+                                                    plugin.getServer().getLogger().warning("[ArenaFighter] Inventory slot mismatch at " + i + " for player " + player.getName());
+                                                    plugin.getServer().getLogger().warning("Expected: " + itemToString(savedInventory[i]));
+                                                    plugin.getServer().getLogger().warning("Found: " + itemToString(current[i]));
+                                                }
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
                                             }
                                         }
                                     }
@@ -401,45 +492,58 @@ public class FightManager {
                                         @SuppressWarnings("DataFlowIssue")
                                         @Override
                                         public void run() {
-                                            player.getInventory().clear();
-                                            for (int i = savedInventory.length - 1; i >= 0; i--) {
-                                                ItemStack item = savedInventory[i];
-                                                player.getInventory().setItem(i, item != null ? item.clone() : null);
-                                            }
-
-                                            if (savedArmor != null) {
-                                                player.getInventory().setArmorContents(savedArmor);
-                                            }
-
-                                            player.updateInventory();
-
-                                            // Final check for total item quantity mismatch
-                                            Map<String, Integer> expected = countItemQuantities(savedInventory);
-                                            Map<String, Integer> actual = countItemQuantities(player.getInventory().getContents());
-
-                                            for (Map.Entry<String, Integer> entry : expected.entrySet()) {
-                                                String key = entry.getKey();
-                                                int expectedAmount = entry.getValue();
-                                                int actualAmount = actual.getOrDefault(key, 0);
-
-                                                if (actualAmount < expectedAmount) {
-                                                    int missing = expectedAmount - actualAmount;
-                                                    String[] split = key.split(":");
-                                                    int typeId = Integer.parseInt(split[0]);
-                                                    short damage = Short.parseShort(split[1]);
-
-                                                    ItemStack stack = new ItemStack(typeId, missing, damage);
-                                                    player.getInventory().addItem(stack);
-
-                                                    // Debug log -defunct
-                                                    plugin.getServer().getLogger().warning("[ArenaFighter] Mismatch recovery for " + player.getName() +
-                                                            ": added back " + missing + " of ItemStack{typeId=" + typeId + ", damage=" + damage + "} " +
-                                                            "(expected=" + expectedAmount + ", actual=" + actualAmount + ")");
+                                            try {
+                                                player.getInventory().clear();
+                                                for (int i = savedInventory.length - 1; i >= 0; i--) {
+                                                    if (i < player.getInventory().getSize()) {
+                                                        ItemStack item = savedInventory[i];
+                                                        player.getInventory().setItem(i, item != null ? item.clone() : null);
+                                                    }
                                                 }
+
+                                                if (savedArmor != null) {
+                                                    ItemStack[] armorCopy = new ItemStack[savedArmor.length];
+                                                    for (int i = 0; i < savedArmor.length; i++) {
+                                                        armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                                                    }
+                                                    player.getInventory().setArmorContents(armorCopy);
+                                                }
+
+                                                player.updateInventory();
+
+                                                // Final check for total item quantity mismatch
+                                                Map<String, Integer> expected = countItemQuantities(savedInventory);
+                                                Map<String, Integer> actual = countItemQuantities(player.getInventory().getContents());
+
+                                                for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+                                                    try {
+                                                        String key = entry.getKey();
+                                                        int expectedAmount = entry.getValue();
+                                                        int actualAmount = actual.getOrDefault(key, 0);
+
+                                                        if (actualAmount < expectedAmount) {
+                                                            int missing = expectedAmount - actualAmount;
+                                                            String[] split = key.split(":");
+                                                            int typeId = Integer.parseInt(split[0]);
+                                                            short damage = Short.parseShort(split[1]);
+
+                                                            ItemStack stack = new ItemStack(typeId, missing, damage);
+                                                            player.getInventory().addItem(stack);
+
+                                                            // Debug log -defunct
+                                                            plugin.getServer().getLogger().warning("[ArenaFighter] Mismatch recovery for " + player.getName() +
+                                                                    ": added back " + missing + " of ItemStack{typeId=" + typeId + ", damage=" + damage + "} " +
+                                                                    "(expected=" + expectedAmount + ", actual=" + actualAmount + ")");
+                                                        }
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                }
+
+                                                player.updateInventory();
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
                                             }
-
-
-                                            player.updateInventory();
                                         }
                                     }, 2L);
                                 }
@@ -595,7 +699,7 @@ public class FightManager {
             healAndFeedPlayer(otherPlayer);
         }
 
-        stopAllSpectators();
+//        stopAllSpectators();
 
         String message = ChatColor.RED + "Fight cancelled!";
         player.sendMessage(message);
@@ -635,7 +739,7 @@ public class FightManager {
 
         activeFights.clear();
         originalLocations.clear();
-        stopAllSpectators();
+//        stopAllSpectators();
     }
 
     public boolean hasPendingChallenge(Player player) {
@@ -706,10 +810,6 @@ public class FightManager {
 
     public boolean startSpectating(Player player) {
         UUID uuid = player.getUniqueId();
-        if (spectatorOriginalLocations.containsKey(uuid)) {
-            player.sendMessage(ChatColor.RED + "You are already spectating.");
-            return false;
-        }
 
         Fight fight = null;
         for (Fight f : activeFights.values()) {
@@ -732,7 +832,6 @@ public class FightManager {
             return false;
         }
 
-        spectatorOriginalLocations.put(uuid, player.getLocation().clone());
         player.teleport(specSpawn);
         player.sendMessage(ChatColor.YELLOW + "You are now spectating the fight between " +
                 fight.getPlayer1().getName() + " and " + fight.getPlayer2().getName() + ".");
@@ -741,11 +840,6 @@ public class FightManager {
 
     public boolean startSpectating(Player player, String arenaName) {
         UUID uuid = player.getUniqueId();
-
-        if (spectatorOriginalLocations.containsKey(uuid)) {
-            player.sendMessage(ChatColor.RED + "You are already spectating.");
-            return false;
-        }
 
         Arena arena = arenaManager.getArena(arenaName);
         if (arena == null) {
@@ -759,39 +853,28 @@ public class FightManager {
             return false;
         }
 
-        spectatorOriginalLocations.put(uuid, player.getLocation().clone());
         player.teleport(specSpawn);
         player.sendMessage(ChatColor.YELLOW + "You are now spectating arena: " + ChatColor.AQUA + arenaName);
-        player.sendMessage(ChatColor.YELLOW + "Use /spectate to return to your original location.");
         return true;
     }
 
     public boolean stopSpectating(Player player) {
-        UUID uuid = player.getUniqueId();
-        Location original = spectatorOriginalLocations.remove(uuid);
-
-        if (original != null) {
-            player.teleport(original);
-            player.sendMessage(ChatColor.YELLOW + "Returned from spectating.");
-            return true;
-        }
-
-        player.sendMessage(ChatColor.RED + "You are not spectating.");
-        return false;
+        player.sendMessage(ChatColor.YELLOW + "You have stopped spectating.");
+        return true;
     }
 
-    public void stopAllSpectators() {
-        for (UUID uuid : new HashMap<>(spectatorOriginalLocations).keySet()) {
-            Player player = plugin.getServer().getPlayer(uuid);
-            if (player != null && player.isOnline()) {
-                stopSpectating(player);
-            }
-        }
-    }
+//    public void stopAllSpectators() {
+//        for (UUID uuid : new HashMap<>(spectatorOriginalLocations).keySet()) {
+//            Player player = plugin.getServer().getPlayer(uuid);
+//            if (player != null && player.isOnline()) {
+//                stopSpectating(player);
+//            }
+//        }
+//    }
 
-    public boolean isSpectating(Player player) {
-        return spectatorOriginalLocations.containsKey(player.getUniqueId());
-    }
+//    public boolean isSpectating(Player player) {
+//        return spectatorOriginalLocations.containsKey(player.getUniqueId());
+//    }
 
     //ECO Wager per Challenge data start
     private static class FightChallenge {
@@ -982,4 +1065,37 @@ public class FightManager {
     }
     // Stat and leaderboard functions end
 
+    // Public getters
+    public boolean getIsInFight(Player player) {return activeFights.containsKey(player.getUniqueId());}
+
+    public boolean isFightParticipant(Player player) {
+        return fightParticipants.contains(player.getUniqueId());
+    }
+
+    public boolean isFightParticipant(UUID uuid) {return fightParticipants.contains(uuid);}
+
+    //TODO debug config
+    public boolean isFightParticipantByName(String name) {
+//        System.out.println("DEBUG: Checking isFightParticipantByName for name=" + name);
+        for (UUID uuid : fightParticipants) {
+            Player p = plugin.getServer().getPlayer(uuid);
+            if (p != null) {
+//                System.out.println("DEBUG: Comparing with participant name=" + p.getName());
+                if (p.getName().equalsIgnoreCase(name)) {
+//                    System.out.println("DEBUG: MATCH! " + name + " is in fightParticipants");
+                    return true;
+                }
+            } else {
+//                System.out.println("DEBUG: Player for UUID " + uuid + " is null (not online?)");
+            }
+        }
+//        System.out.println("DEBUG: NO MATCH for " + name + " in fightParticipants");
+        return false;
+    }
+
+    public void markRecentlyDiedInArena(UUID uuid) { recentlyDiedInArena.add(uuid);}
+
+    public boolean didRecentlyDieInArena(UUID uuid) {return recentlyDiedInArena.contains(uuid);}
+
+    public void clearRecentlyDiedInArena(UUID uuid) {recentlyDiedInArena.remove(uuid);}
 }

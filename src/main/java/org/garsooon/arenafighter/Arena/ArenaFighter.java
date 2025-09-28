@@ -18,11 +18,13 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashMap;
 
 import static org.bukkit.Bukkit.getLogger;
 
@@ -36,8 +38,16 @@ public class ArenaFighter extends JavaPlugin {
     @SuppressWarnings("FieldMayBeFinal")
     private Set<String> blockedCommands = new HashSet<>();
 
+    private boolean arenaEnabled = true;
+    private Map<String, Object> configData;
+
     @Override
     public void onEnable() {
+        // Create default config if missing
+        createDefaultConfig();
+
+        loadArenaEnabledFlag();
+
         // Initialize ArenaManager
         this.arenaManager = new ArenaManager(this);
 
@@ -60,7 +70,7 @@ public class ArenaFighter extends JavaPlugin {
 
         // Register commands
         getCommand("fight").setExecutor(fightCommand);
-        getCommand("arena").setExecutor(new ArenaCommand(arenaManager));
+        getCommand("arena").setExecutor(new ArenaCommand(arenaManager, this));
         getCommand("spectate").setExecutor(new SpectateCommand(fightManager));
         getCommand("bet").setExecutor(new SpectateBetCommand(fightManager));
         this.getCommand("fightabout").setExecutor(new FightAboutCommand(this));
@@ -71,9 +81,6 @@ public class ArenaFighter extends JavaPlugin {
         pm.registerEvents(new PlayerQuitListener(fightManager, fightCommand), this);
         pm.registerEvents(new PlayerDropListener(fightManager), this);
         pm.registerEvents(new PlayerCommandListener(this, fightManager), this);
-
-        // Create default config if missing
-        createDefaultConfig();
 
         // Load blocked commands list
         loadBlockedCommands();
@@ -105,6 +112,73 @@ public class ArenaFighter extends JavaPlugin {
         return blockedCommands;
     }
 
+    public boolean isArenaEnabled() {
+        return arenaEnabled;
+    }
+
+    public void setArenaEnabled(boolean enabled) {
+        this.arenaEnabled = enabled;
+        if (configData == null) configData = new LinkedHashMap<>();
+        Map<String, Object> arenaSection;
+        if (configData.containsKey("arena") && configData.get("arena") instanceof Map) {
+            arenaSection = (Map<String, Object>) configData.get("arena");
+        } else {
+            arenaSection = new LinkedHashMap<>();
+            configData.put("arena", arenaSection);
+        }
+        arenaSection.put("enabled", enabled);
+        saveConfigFile();
+    }
+
+    private void loadArenaEnabledFlag() {
+        File configFile = new File(getDataFolder(), "config.yml");
+        Yaml yaml = new Yaml();
+        configData = null;
+
+        try (InputStream input = new FileInputStream(configFile)) {
+            configData = (Map<String, Object>) yaml.load(input);
+        } catch (Exception e) {
+            configData = new LinkedHashMap<>();
+        }
+
+        if (configData == null) configData = new LinkedHashMap<>();
+
+        boolean needSave = false;
+
+        Map<String, Object> arenaSection;
+        if (configData.containsKey("arena") && configData.get("arena") instanceof Map) {
+            arenaSection = (Map<String, Object>) configData.get("arena");
+        } else {
+            arenaSection = new LinkedHashMap<>();
+            configData.put("arena", arenaSection);
+            needSave = true;
+        }
+
+        if (!arenaSection.containsKey("enabled")) {
+            arenaSection.put("enabled", true);
+            this.arenaEnabled = true;
+            needSave = true;
+        } else {
+            Object value = arenaSection.get("enabled");
+            this.arenaEnabled = (value instanceof Boolean) ? (Boolean) value : Boolean.parseBoolean(String.valueOf(value));
+        }
+
+        if (needSave) saveConfigFile();
+    }
+
+    //I should pr a config api that isnt for poseidons own config xd
+    private void saveConfigFile() {
+        File configFile = new File(getDataFolder(), "config.yml");
+        org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
+        options.setDefaultFlowStyle(org.yaml.snakeyaml.DumperOptions.FlowStyle.BLOCK);
+        Yaml yaml = new Yaml(options);
+        try (FileWriter writer = new FileWriter(configFile)) {
+            yaml.dump(configData, writer);
+        } catch (Exception e) {
+            getLogger().warning("Failed to save config.yml: " + e.getMessage());
+        }
+    }
+
     private void createDefaultConfig() {
         if (!getDataFolder().exists()) {
             getDataFolder().mkdirs();
@@ -120,6 +194,10 @@ public class ArenaFighter extends JavaPlugin {
                 writer.write("# ArenaFighter Configuration\n");
                 writer.write("# To configure your arenas, run /arena create <arena_name>\n");
                 writer.write("# then you can modify it in arenas.properties in this folder\n");
+                writer.write("\n");
+                writer.write("# Arena system enabled/disabled\n");
+                writer.write("arena:\n");
+                writer.write("  enabled: true\n");
                 writer.write("\n");
                 writer.write("punishment:\n");
                 writer.write("  duration-minute: 5\n");
