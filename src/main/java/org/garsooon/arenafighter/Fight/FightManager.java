@@ -289,66 +289,115 @@ public class FightManager {
 //        forceCloseInventory(loser);
 
         UUID loserId = loser.getUniqueId();
-        ItemStack[] inventory = loser.getInventory().getContents().clone();
-        ItemStack[] armor = loser.getInventory().getArmorContents().clone();
+        ItemStack[] inventory;
+        ItemStack[] armor;
+        try {
+            inventory = loser.getInventory().getContents().clone();
+            armor = loser.getInventory().getArmorContents().clone();
+        } catch (Exception e) {
+            return;
+        }
 
         ItemStack cursor = getItemOnCursor(loser);
         if (cursor != null && cursor.getTypeId() != 0) {
-            for (int i = 0; i < inventory.length; i++) {
-                if (inventory[i] == null || inventory[i].getTypeId() == 0) {
-                    inventory[i] = cursor;
-                    break;
+            boolean inserted = false;
+            try {
+                for (int i = 0; i < inventory.length; i++) {
+                    if (inventory[i] == null || inventory[i].getTypeId() == 0) {
+                        inventory[i] = cursor;
+                        inserted = true;
+                        break;
+                    }
                 }
+            } catch (IndexOutOfBoundsException e) {
             }
             setItemOnCursor(loser, new ItemStack(0));
         }
 
-        originalInventories.put(loserId, inventory);
-        originalArmor.put(loserId, armor);
+        try {
+            originalInventories.put(loserId, inventory);
+            originalArmor.put(loserId, armor);
+        } catch (Exception e) {
+        }
 
-        Location winnerOriginal = originalLocations.remove(winner.getUniqueId());
-        Location loserOriginal = originalLocations.remove(loser.getUniqueId());
+        Location winnerOriginal;
+        Location loserOriginal;
+        try {
+            winnerOriginal = originalLocations.remove(winner.getUniqueId());
+            loserOriginal = originalLocations.remove(loser.getUniqueId());
+        } catch (Exception e) {
+            winnerOriginal = null;
+            loserOriginal = null;
+        }
 
         if (winnerOriginal != null) {
-            winner.teleport(winnerOriginal);
-            healAndFeedPlayer(winner);
+            try {
+                winner.teleport(winnerOriginal);
+                healAndFeedPlayer(winner);
+            } catch (Exception e) {
+            }
         }
 
         if (loserOriginal != null) {
-            loser.teleport(loserOriginal);
-            restoreOriginalInventoryAndArmor(loser);
-            healAndFeedPlayer(loser);
+            try {
+                loser.teleport(loserOriginal);
+                restoreOriginalInventoryAndArmor(loser);
+                healAndFeedPlayer(loser);
+            } catch (Exception e) {
+            }
         }
 
 //        stopAllSpectators();
 
-        double wager = fight.getWager();
-
-        if (wager > 0) {
-            double truncatedWager = Bet.roundDownTwoDecimals(wager);
-            deposit(winner, wager * 2);
-            winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
+        double wager;
+        try {
+            wager = fight.getWager();
+        } catch (Exception e) {
+            wager = 0;
         }
 
-        fight.resolveBets(winner.getName());
-
-        incrementStat(winner.getUniqueId(), "wins", winner.getName());
-        incrementStat(loser.getUniqueId(), "losses", loser.getName());
-
-        String message = ChatColor.GOLD + winner.getName() +
-                ChatColor.YELLOW + " has defeated " +
-                ChatColor.RED + loser.getName() +
-                ChatColor.YELLOW + " in arena " +
-                ChatColor.GREEN + fight.getArena().getName();
-
         if (wager > 0) {
-            double truncatedWager = Bet.roundDownTwoDecimals(wager * 2);
-            message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + truncatedWager;
+            try {
+                double truncatedWager = Bet.roundDownTwoDecimals(wager);
+                deposit(winner, wager * 2);
+                winner.sendMessage(ChatColor.GREEN + "You have won " + (wager * 2) + " from the wager!");
+            } catch (Exception e) {
+            }
         }
 
-        message += ChatColor.YELLOW + "!";
+        try {
+            fight.resolveBets(winner.getName());
+        } catch (Exception e) {
+        }
 
-        plugin.getServer().broadcastMessage(message);
+        try {
+            incrementStat(winner.getUniqueId(), "wins", winner.getName());
+            incrementStat(loser.getUniqueId(), "losses", loser.getName());
+        } catch (Exception e) {
+        }
+
+        String message;
+        try {
+            message = ChatColor.GOLD + winner.getName() +
+                    ChatColor.YELLOW + " has defeated " +
+                    ChatColor.RED + loser.getName() +
+                    ChatColor.YELLOW + " in arena " +
+                    ChatColor.GREEN + fight.getArena().getName();
+
+            if (wager > 0) {
+                double truncatedWager = Bet.roundDownTwoDecimals(wager * 2);
+                message += ChatColor.YELLOW + " and won a wager of " + ChatColor.GOLD + truncatedWager;
+            }
+
+            message += ChatColor.YELLOW + "!";
+        } catch (Exception e) {
+            message = "";
+        }
+
+        try {
+            plugin.getServer().broadcastMessage(message);
+        } catch (Exception e) {
+        }
     }
 
     // Boy I sure do love not having itemStackCursor in poseidon :clueless:
@@ -368,46 +417,73 @@ public class FightManager {
                 final ItemStack[] savedArmor = originalArmor.remove(uuid);
 
                 if (savedInventory != null) {
-                    player.getInventory().clear();
-
-                    // Fill inventory backwards to reduce stacking dupes
-                    for (int i = savedInventory.length - 1; i >= 0; i--) {
-                        ItemStack item = savedInventory[i];
-                        player.getInventory().setItem(i, item != null ? item.clone() : null);
+                    try {
+                        player.getInventory().clear();
+                        // Fill inventory backwards to reduce stacking dupes
+                        for (int i = savedInventory.length - 1; i >= 0; i--) {
+                            if (i < player.getInventory().getSize()) {
+                                ItemStack item = savedInventory[i];
+                                player.getInventory().setItem(i, item != null ? item.clone() : null);
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
 
                 if (savedArmor != null) {
-                    ItemStack[] armorCopy = new ItemStack[savedArmor.length];
-                    for (int i = 0; i < savedArmor.length; i++) {
-                        armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                    try {
+                        ItemStack[] armorCopy = new ItemStack[savedArmor.length];
+                        for (int i = 0; i < savedArmor.length; i++) {
+                            armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                        }
+                        player.getInventory().setArmorContents(armorCopy);
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    player.getInventory().setArmorContents(armorCopy);
                 }
 
                 Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                     @Override
                     public void run() {
-                        player.updateInventory();
+                        try {
+                            player.updateInventory();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
 
                         // Shouldn't run now that inventories are saved on fight end.
                         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                             @Override
                             public void run() {
-                                boolean inventoryMismatch = !deepInventoryMatch(player.getInventory().getContents(), savedInventory);
-                                boolean armorMismatch = !deepInventoryMatch(player.getInventory().getArmorContents(), savedArmor);
+                                boolean inventoryMismatch = false;
+                                boolean armorMismatch = false;
+                                try {
+                                    inventoryMismatch = !deepInventoryMatch(player.getInventory().getContents(), savedInventory);
+                                    armorMismatch = !deepInventoryMatch(player.getInventory().getArmorContents(), savedArmor);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
 
                                 if (inventoryMismatch || armorMismatch) {
-                                    player.sendMessage(ChatColor.RED + "Your inventory failed to restore properly. Retrying...");
+                                    try {
+                                        player.sendMessage(ChatColor.RED + "Your inventory failed to restore properly. Retrying...");
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
 
                                     //Debug
                                     if (savedInventory != null) {
                                         ItemStack[] current = player.getInventory().getContents();
                                         for (int i = 0; i < savedInventory.length; i++) {
-                                            if (!deepItemEquals(savedInventory[i], current[i])) {
-                                                plugin.getServer().getLogger().warning("[ArenaFighter] Inventory slot mismatch at " + i + " for player " + player.getName());
-                                                plugin.getServer().getLogger().warning("Expected: " + itemToString(savedInventory[i]));
-                                                plugin.getServer().getLogger().warning("Found: " + itemToString(current[i]));
+                                            try {
+                                                if (!deepItemEquals(savedInventory[i], current[i])) {
+                                                    plugin.getServer().getLogger().warning("[ArenaFighter] Inventory slot mismatch at " + i + " for player " + player.getName());
+                                                    plugin.getServer().getLogger().warning("Expected: " + itemToString(savedInventory[i]));
+                                                    plugin.getServer().getLogger().warning("Found: " + itemToString(current[i]));
+                                                }
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
                                             }
                                         }
                                     }
@@ -416,48 +492,58 @@ public class FightManager {
                                         @SuppressWarnings("DataFlowIssue")
                                         @Override
                                         public void run() {
-                                            player.getInventory().clear();
-                                            for (int i = savedInventory.length - 1; i >= 0; i--) {
-                                                ItemStack item = savedInventory[i];
-                                                player.getInventory().setItem(i, item != null ? item.clone() : null);
-                                            }
-
-                                            if (savedArmor != null) {
-                                                ItemStack[] armorCopy = new ItemStack[savedArmor.length];
-                                                for (int i = 0; i < savedArmor.length; i++) {
-                                                    armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                                            try {
+                                                player.getInventory().clear();
+                                                for (int i = savedInventory.length - 1; i >= 0; i--) {
+                                                    if (i < player.getInventory().getSize()) {
+                                                        ItemStack item = savedInventory[i];
+                                                        player.getInventory().setItem(i, item != null ? item.clone() : null);
+                                                    }
                                                 }
-                                                player.getInventory().setArmorContents(armorCopy);
-                                            }
 
-                                            player.updateInventory();
-
-                                            // Final check for total item quantity mismatch
-                                            Map<String, Integer> expected = countItemQuantities(savedInventory);
-                                            Map<String, Integer> actual = countItemQuantities(player.getInventory().getContents());
-
-                                            for (Map.Entry<String, Integer> entry : expected.entrySet()) {
-                                                String key = entry.getKey();
-                                                int expectedAmount = entry.getValue();
-                                                int actualAmount = actual.getOrDefault(key, 0);
-
-                                                if (actualAmount < expectedAmount) {
-                                                    int missing = expectedAmount - actualAmount;
-                                                    String[] split = key.split(":");
-                                                    int typeId = Integer.parseInt(split[0]);
-                                                    short damage = Short.parseShort(split[1]);
-
-                                                    ItemStack stack = new ItemStack(typeId, missing, damage);
-                                                    player.getInventory().addItem(stack);
-
-                                                    // Debug log -defunct
-                                                    plugin.getServer().getLogger().warning("[ArenaFighter] Mismatch recovery for " + player.getName() +
-                                                            ": added back " + missing + " of ItemStack{typeId=" + typeId + ", damage=" + damage + "} " +
-                                                            "(expected=" + expectedAmount + ", actual=" + actualAmount + ")");
+                                                if (savedArmor != null) {
+                                                    ItemStack[] armorCopy = new ItemStack[savedArmor.length];
+                                                    for (int i = 0; i < savedArmor.length; i++) {
+                                                        armorCopy[i] = savedArmor[i] != null ? savedArmor[i].clone() : null;
+                                                    }
+                                                    player.getInventory().setArmorContents(armorCopy);
                                                 }
-                                            }
 
-                                            player.updateInventory();
+                                                player.updateInventory();
+
+                                                // Final check for total item quantity mismatch
+                                                Map<String, Integer> expected = countItemQuantities(savedInventory);
+                                                Map<String, Integer> actual = countItemQuantities(player.getInventory().getContents());
+
+                                                for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+                                                    try {
+                                                        String key = entry.getKey();
+                                                        int expectedAmount = entry.getValue();
+                                                        int actualAmount = actual.getOrDefault(key, 0);
+
+                                                        if (actualAmount < expectedAmount) {
+                                                            int missing = expectedAmount - actualAmount;
+                                                            String[] split = key.split(":");
+                                                            int typeId = Integer.parseInt(split[0]);
+                                                            short damage = Short.parseShort(split[1]);
+
+                                                            ItemStack stack = new ItemStack(typeId, missing, damage);
+                                                            player.getInventory().addItem(stack);
+
+                                                            // Debug log -defunct
+                                                            plugin.getServer().getLogger().warning("[ArenaFighter] Mismatch recovery for " + player.getName() +
+                                                                    ": added back " + missing + " of ItemStack{typeId=" + typeId + ", damage=" + damage + "} " +
+                                                                    "(expected=" + expectedAmount + ", actual=" + actualAmount + ")");
+                                                        }
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                }
+
+                                                player.updateInventory();
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
                                         }
                                     }, 2L);
                                 }
