@@ -2,6 +2,10 @@
 # To configure your arenas, run /arena create <arena_name> in game
 # then you can modify it in arenas.properties in the ArenaFighter folder
 
+# Arena system enabled/disabled
+arena:
+  enabled: true
+
 #Combat logging punishment
 punishment:
   duration-minutes: 5
