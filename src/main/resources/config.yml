@@ -6,6 +6,9 @@
 arena:
   enabled: true
 
+# Enable/ disable bow use
+disable-bows: false
+
 #Combat logging punishment
 punishment:
   duration-minutes: 5

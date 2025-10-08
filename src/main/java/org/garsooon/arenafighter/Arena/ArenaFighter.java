@@ -8,23 +8,13 @@ import org.garsooon.arenafighter.Commands.FightCommand;
 import org.garsooon.arenafighter.Commands.SpectateCommand;
 import org.garsooon.arenafighter.Commands.SpectateBetCommand;
 import org.garsooon.arenafighter.Fight.FightManager;
-import org.garsooon.arenafighter.Listeners.PlayerCommandListener;
-import org.garsooon.arenafighter.Listeners.PlayerDeathListener;
-import org.garsooon.arenafighter.Listeners.PlayerDropListener;
-import org.garsooon.arenafighter.Listeners.PlayerQuitListener;
+import org.garsooon.arenafighter.Listeners.*;
 import org.garsooon.arenafighter.Economy.Method;
 import org.garsooon.arenafighter.Economy.Methods;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.LinkedHashMap;
+import java.io.*;
+import java.util.*;
 
 import static org.bukkit.Bukkit.getLogger;
 
@@ -81,6 +71,7 @@ public class ArenaFighter extends JavaPlugin {
         pm.registerEvents(new PlayerQuitListener(fightManager, fightCommand), this);
         pm.registerEvents(new PlayerDropListener(fightManager), this);
         pm.registerEvents(new PlayerCommandListener(this, fightManager), this);
+        pm.registerEvents(new BowListener(this), this);
 
         // Load blocked commands list
         loadBlockedCommands();
@@ -166,6 +157,18 @@ public class ArenaFighter extends JavaPlugin {
         if (needSave) saveConfigFile();
     }
 
+    public boolean isBowDisabled() {
+        if (configData == null) return false;
+        Object value = configData.get("disable-bows");
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value != null) {
+            return Boolean.parseBoolean(String.valueOf(value));
+        }
+        return false;
+    }
+
     //I should pr a config api that isnt for poseidons own config xd
     private void saveConfigFile() {
         File configFile = new File(getDataFolder(), "config.yml");
@@ -198,6 +201,8 @@ public class ArenaFighter extends JavaPlugin {
                 writer.write("# Arena system enabled/disabled\n");
                 writer.write("arena:\n");
                 writer.write("  enabled: true\n");
+                writer.write("# Enable / Disable bow use (may stop crashes for certain servers)\n");
+                writer.write("disable-bows: false\n");
                 writer.write("\n");
                 writer.write("punishment:\n");
                 writer.write("  duration-minute: 5\n");
