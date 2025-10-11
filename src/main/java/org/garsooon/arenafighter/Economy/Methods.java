@@ -30,7 +30,7 @@ public class Methods {
      */
     private static void _init() {
         addMethod("Essentials", new org.garsooon.arenafighter.Economy.methods.EE17());
-        addMethod("ZCore", new org.garsooon.arenafighter.Economy.methods.ZCoreEco());
+//        addMethod("ZCore", new org.garsooon.arenafighter.Economy.methods.ZCoreEco());
         Dependencies.add("MultiCurrency"); // Optional/future support
     }
 
